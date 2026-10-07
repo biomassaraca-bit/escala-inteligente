@@ -1,0 +1,374 @@
+<!doctype html><html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#123f2c"><link rel="manifest" href="manifest.webmanifest">
+<title>Raça Biomassa | Escala Inteligente V15.6 Supabase</title>
+<style>
+:root{--g:#123f2c;--g2:#216647;--bg:#eef3ef;--line:#dbe6df;--muted:#687b71;--green:#e5f3e8;--amber:#fff1c7;--red:#f9dddd}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Arial,sans-serif;color:#163329}.app{max-width:760px;margin:auto}.hero{background:var(--g);color:#fff;padding:16px 18px 20px;border-radius:0 0 24px 24px}.brand{display:flex;justify-content:space-between;align-items:center}.logo{width:150px;max-height:60px;object-fit:contain}.mascot{width:68px;height:68px;border-radius:50%;object-fit:cover;background:#fff}.hero h1{margin:12px 0 4px;font-size:22px}.hero p{margin:0;font-size:13px;opacity:.9}.wrap{padding:14px}.card{background:#fff;border-radius:18px;padding:15px;margin-bottom:12px;box-shadow:0 2px 12px #0000000d}.title{font-size:13px;font-weight:800;letter-spacing:.45px;color:var(--g);margin-bottom:10px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.field label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px}.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:14px;background:#fff}.field textarea{min-height:58px}.small{font-size:11px;color:var(--muted);line-height:1.4}.summary{background:#f5f8f6;border-radius:12px;padding:10px;font-size:13px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}button{border:0;border-radius:11px;padding:11px 13px;font-weight:700;cursor:pointer}.primary{background:var(--g);color:#fff}.secondary{background:#e4eee8;color:var(--g)}.danger{background:#f8e3e3;color:#8c2929}.need,.scale,.memory{border:1px solid var(--line);border-radius:14px;padding:11px;margin:9px 0}.top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.name{font-weight:800}.badge{font-size:11px;font-weight:700;border-radius:999px;padding:5px 8px}.green{background:var(--green);color:#17613b}.amber{background:var(--amber);color:#745700}.red{background:var(--red);color:#8a2929}.edit{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}.wide{grid-column:1/-1}.memoryHead{display:flex;justify-content:space-between;align-items:center}.hidden{display:none}.output{white-space:pre-wrap;background:#f7faf8;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:13px;line-height:1.5;max-height:360px;overflow:auto}.rank{font-size:12px;color:var(--muted);margin-top:5px}
+.clientRow{display:grid;grid-template-columns:1fr auto;gap:7px;align-items:end}
+.clientRow button{white-space:nowrap}
+.notice{background:#eef6f0;border:1px solid #d8e8dd;border-radius:12px;padding:10px;font-size:12px;line-height:1.45;margin:8px 0}
+.needNo{font-size:12px;font-weight:800;color:var(--g);margin-bottom:4px}.workshopItem{border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0;background:#fafcfb}.workshopItem .rank{line-height:1.45}
+@media(max-width:520px){.grid,.edit{grid-template-columns:1fr}.wide{grid-column:auto}.logo{width:135px}}
+
+.authGate{position:fixed;inset:0;background:#eef3ef;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}.authBox{width:min(430px,100%);background:#fff;border-radius:20px;padding:22px;box-shadow:0 10px 35px #0002}.authBrand{background:var(--g);margin:-22px -22px 20px;padding:20px;border-radius:20px 20px 0 0;text-align:center}.authBrand img{max-width:180px;max-height:70px;object-fit:contain}.authBox h2{margin:0 0 6px;color:var(--g)}.authBox .field{margin:10px 0}.authMsg{min-height:18px;font-size:12px;margin-top:10px;color:#8a2929}.userbar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:12px;font-size:11px}.userbar button{padding:7px 10px}.adminOnly.hiddenByRole{display:none!important}.authHidden{display:none!important}.cadList{margin-top:10px}.cadItem{display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--line);border-radius:11px;padding:9px 10px;margin:6px 0;background:#fafcfb}.cadItem.inactive{opacity:.62}.cadMeta{font-size:11px;color:var(--muted);margin-top:2px}.cadItem button{padding:7px 9px;font-size:11px}
+</style></head><body><div id="authGate" class="authGate"><div class="authBox"><div class="authBrand"><img src="logo.png" alt="Raça Biomassa"></div><h2>Acesso ao sistema</h2><div class="small">Escala Inteligente de Motoristas</div><div class="field"><label>E-mail</label><input id="loginEmail" type="email" autocomplete="username" placeholder="seu.email@racabiomassa.com.br"></div><div class="field"><label>Senha</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Senha"></div><button class="primary" style="width:100%" type="button" onclick="loginSupabase()">Entrar</button><div id="authMsg" class="authMsg"></div></div></div><div class="app">
+<header class="hero"><div class="brand"><img class="logo" src="logo.png"><img class="mascot" src="mascote.png"></div><h1>Escala Inteligente de Motoristas</h1><p>Necessidade do próximo dia → sugestão → revisão → aprovação</p><div class="userbar"><span id="userInfo">Conectando...</span><button class="secondary" type="button" onclick="logoutSupabase()">Sair</button></div></header>
+<main class="wrap">
+<section class="card"><div class="title">1. NOVA ESCALA</div><div class="grid">
+<div class="field"><label>Data</label><input id="date" type="date"></div><div class="field"><label>Unidade</label><select id="unit"><option>Patos de Minas</option><option>Itaúna</option></select></div></div>
+<div class="summary" id="info" style="margin-top:10px"></div>
+<div id="fridayPlan" class="notice hidden" style="margin-top:10px"><b>Planejamento de sexta-feira</b><br>Por padrão, a próxima escala é de segunda-feira. Se houver operação extraordinária no sábado, gere uma escala separada para sábado.<div class="actions"><button id="btnMonday" class="primary" type="button" onclick="planMonday()">Preparar segunda-feira</button><button id="btnSaturday" class="secondary" type="button" onclick="planSaturday()">Operação extraordinária no sábado</button></div></div></section>
+
+<section class="card"><div class="title">2. OFICINA / INDISPONIBILIDADE DE VEÍCULOS</div>
+<p class="small">Registre os veículos que não podem entrar na escala da data selecionada. Eles serão bloqueados automaticamente nas sugestões.</p>
+<div class="grid">
+<div class="field"><label>Veículo / placa</label><select id="blockPlate"></select></div>
+<div class="field"><label>Motivo</label><select id="blockReason"><option>Oficina</option><option>Manutenção</option><option>Quebra</option><option>Indisponível</option></select></div>
+<div class="field"><label>Início</label><input id="blockStart" type="date"></div>
+<div class="field"><label>Previsão de retorno</label><input id="blockEnd" type="date"></div>
+<div class="field wide"><label>Observação</label><input id="blockObs" placeholder="Ex.: problema mecânico, aguardando peça..."></div></div>
+<div class="actions"><button class="secondary" type="button" onclick="addVehicleBlock()">+ Registrar indisponibilidade</button></div>
+<div id="vehicleBlocks"></div></section>
+
+<section class="card"><div class="title">3. SITUAÇÃO / INDISPONIBILIDADE DE MOTORISTAS</div>
+<p class="small">Registre folgas e demais indisponibilidades dos motoristas. O motorista ficará fora das sugestões durante o período informado.</p>
+<div class="grid">
+<div class="field"><label>Motorista</label><select id="driverBlockName"></select></div>
+<div class="field"><label>Situação</label><select id="driverBlockReason"><option>Folga</option><option>Férias</option><option>Atestado</option><option>Afastamento</option><option>Treinamento</option><option>Indisponível</option></select></div>
+<div class="field"><label>Início</label><input id="driverBlockStart" type="date"></div>
+<div class="field"><label>Fim / retorno previsto</label><input id="driverBlockEnd" type="date"></div>
+<div class="field wide"><label>Observação</label><input id="driverBlockObs" placeholder="Ex.: folga programada, treinamento, retorno previsto..."></div></div>
+<div class="actions"><button class="secondary" type="button" onclick="addDriverBlock()">+ Registrar situação</button></div>
+<div id="driverBlocks"></div></section>
+
+<section class="card"><div class="title">4. NECESSIDADES DO PRÓXIMO DIA</div>
+<p class="small">Cadastre TODAS as necessidades da unidade antes de gerar. Você pode incluir vários clientes e operações; o sistema consolida tudo em uma única escala.</p>
+<div class="notice">Exemplo: Predilecta + FASA + Cicopal + Pif Paf podem ser cadastrados juntos. O motorista só é utilizado uma vez na sugestão, e a aprovação é feita somente ao final da escala completa.</div>
+<div id="needs"></div><div class="actions"><button class="secondary" onclick="addNeed()">+ Adicionar cliente / necessidade</button><button class="primary" onclick="generate()">Gerar escala inteligente</button></div></section>
+
+<section class="card"><div class="memoryHead"><div class="title" style="margin:0">MEMÓRIA D-1</div><button class="secondary" onclick="toggleMemory()">Ver / ocultar</button></div>
+<div id="memory" class="hidden"></div></section>
+
+<section class="card"><div class="title">5. ESCALA SUGERIDA</div><div id="scale"><div class="small">Cadastre as necessidades e clique em “Gerar escala inteligente”.</div></div>
+<div class="actions"><button class="secondary" onclick="addManual()">+ Adicionar manualmente</button></div></section>
+
+<section class="card"><div class="title">6. APROVAÇÃO E WHATSAPP</div><div class="actions"><button class="primary" onclick="approve()">Aprovar escala</button><button class="secondary" onclick="buildText()">Gerar texto</button><button class="secondary" onclick="shareText()">Compartilhar</button><button id="btnExportExcel" class="secondary adminOnly" onclick="exportExcel()">Relatórios / Exportar Excel</button></div><div id="msg" class="small" style="margin:9px 0"></div><div id="output" class="output">A escala será formatada aqui.</div></section>
+<section class="card"><div class="title">7. CADASTROS OPERACIONAIS</div><p class="small">Motoristas e veículos são recursos globais da Raça Biomassa. A unidade-base define apenas a prioridade da sugestão automática. Classifique cada recurso como Frota Própria ou Frota Terceira.</p>
+<div class="needNo">NOVO MOTORISTA</div><div class="grid">
+<div class="field"><label>Novo motorista</label><input id="newDriverName" placeholder="Nome completo"></div>
+<div class="field"><label>Unidade-base</label><select id="newDriverUnit"><option>Patos de Minas</option><option>Itaúna</option></select></div>
+<div class="field"><label>Tipo de Frota</label><select id="newDriverFleet" onchange="toggleFleetCarrier('Driver')"><option value="PROPRIA">Frota Própria</option><option value="TERCEIRA">Frota Terceira</option></select></div>
+<div class="field"><label>Transportadora</label><input id="newDriverCarrier" placeholder="Ex.: ARTMAF / FORMOSO TRANSPORTES" disabled></div>
+</div><div class="actions"><button class="secondary" type="button" onclick="addCentralDriver()">+ Cadastrar motorista</button></div>
+<div class="needNo" style="margin-top:14px">NOVO VEÍCULO</div><div class="grid">
+<div class="field"><label>Novo veículo / placa</label><input id="newVehiclePlate" placeholder="ABC-1D23" maxlength="8"></div>
+<div class="field"><label>Unidade-base</label><select id="newVehicleUnit"><option>Patos de Minas</option><option>Itaúna</option></select></div>
+<div class="field"><label>Tipo de Frota</label><select id="newVehicleFleet" onchange="toggleFleetCarrier('Vehicle')"><option value="PROPRIA">Frota Própria</option><option value="TERCEIRA">Frota Terceira</option></select></div>
+<div class="field"><label>Transportadora</label><input id="newVehicleCarrier" placeholder="Ex.: ARTMAF / FORMOSO TRANSPORTES" disabled></div>
+</div><div class="actions"><button class="secondary" type="button" onclick="addCentralVehicle()">+ Cadastrar veículo</button></div><div class="actions"><button id="btnToggleCadastros" class="secondary" type="button" onclick="toggleCadastros()">Ver cadastros ativos e inativos</button></div><div id="cadastroFeedback" class="summary hidden" style="margin-top:10px"></div><div id="cadastrosList" class="cadList" style="display:none"></div></section>
+</main></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://yhlcwlyfptccdozsnuvk.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_H38Qzo93JlasME20mAKhtQ_KVe88uZl";
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+let currentProfile=null;
+let centralUnits=[],centralDrivers=[],centralVehicles=[],centralClients=[],centralOrigins=[],centralDriverBlocks=[],centralVehicleBlocks=[],centralHistory=[],allCentralDrivers=[],allCentralVehicles=[];
+function centralUnitId(name){return centralUnits.find(u=>u.nome===name)?.id??null}
+async function loadCentralResources(){
+ const [uRes,dRes,vRes,cRes,oRes,dbRes,vbRes]=await Promise.all([
+   sb.from('unidades').select('id,nome,ativa').eq('ativa',true).order('id'),
+   sb.from('motoristas').select('id,nome,unidade_base_id,ativo,tipo_frota,transportadora').order('nome'),
+   sb.from('veiculos').select('id,placa,unidade_base_id,ativo,tipo_frota,transportadora').order('placa'),
+   sb.from('clientes').select('id,nome,unidade_id,ativo').eq('ativo',true).order('nome'),
+   sb.from('origens').select('id,nome,unidade_id,ativo').eq('ativo',true).order('nome'),
+   sb.from('indisponibilidades_motoristas').select('id,motorista_id,unidade_id,motivo,data_inicio,data_fim,observacao,ativa').eq('ativa',true).order('data_inicio'),
+   sb.from('indisponibilidades_veiculos').select('id,veiculo_id,unidade_id,motivo,data_inicio,data_fim,observacao,ativa').eq('ativa',true).order('data_inicio')
+ ]);
+ const err=uRes.error||dRes.error||vRes.error||cRes.error||oRes.error||dbRes.error||vbRes.error;
+ if(err)throw err;
+ centralUnits=uRes.data||[];allCentralDrivers=dRes.data||[];allCentralVehicles=vRes.data||[];centralDrivers=allCentralDrivers.filter(x=>x.ativo);centralVehicles=allCentralVehicles.filter(x=>x.ativo);centralClients=cRes.data||[];centralOrigins=oRes.data||[];centralDriverBlocks=dbRes.data||[];centralVehicleBlocks=vbRes.data||[];
+ await loadCentralHistory();
+ renderDriverBlockOptions();renderBlockPlateOptions();renderMemory();renderNeeds();renderCadastros();info();
+ return {drivers:centralDrivers.length,vehicles:centralVehicles.length,clients:centralClients.length,origins:centralOrigins.length};
+}
+async function applySession(session){
+ const gate=document.getElementById('authGate'),msg=document.getElementById('authMsg');
+ if(!session?.user){gate.classList.remove('authHidden');document.getElementById('userInfo').textContent='Não autenticado';return false}
+ const {data:profile,error}=await sb.from('perfis_usuarios').select('perfil,nome,ativo').eq('id',session.user.id).single();
+ if(error||!profile||!profile.ativo){await sb.auth.signOut();gate.classList.remove('authHidden');msg.textContent='Usuário sem perfil ativo. Procure o administrador.';return false}
+ currentProfile=profile;gate.classList.add('authHidden');
+ document.getElementById('userInfo').textContent=(profile.nome||session.user.email)+' • '+(profile.perfil==='admin'?'Administrador':'Gestor');
+ document.querySelectorAll('.adminOnly').forEach(el=>el.classList.toggle('hiddenByRole',profile.perfil!=='admin'));
+ try{await loadCentralResources()}catch(e){console.error(e);msg.textContent='Login realizado, mas não foi possível carregar os cadastros do banco central: '+e.message}
+ return true;
+}
+async function loginSupabase(){
+ const email=document.getElementById('loginEmail').value.trim(),password=document.getElementById('loginPassword').value,msg=document.getElementById('authMsg');
+ msg.textContent='Entrando...';
+ const {data,error}=await sb.auth.signInWithPassword({email,password});
+ if(error){msg.textContent='Não foi possível entrar: '+error.message;return}
+ msg.textContent='';await applySession(data.session);
+}
+async function logoutSupabase(){await sb.auth.signOut();location.reload()}
+sb.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>applySession(session),0)});
+sb.auth.getSession().then(({data})=>applySession(data.session));
+
+const SEED={"date": "2026-09-25", "Patos de Minas": [["Washington Luiz", "RMO-4I01", "Prancha", "Patos/São Gotardo", "", "Prancha; Patos/São Gotardo."], ["Aglênio de Oliveira", "SHX-4G89", "Carregamento", "Predilecta Patos", "09:00", "Floresta de São Gotardo"], ["Alessandro Ramos", "MHW-0H96", "Carregamento", "Predilecta Patos", "09:30", "Floresta de São Gotardo"], ["Janmi Cunha", "RMO-4I00", "Carregamento", "Predilecta Patos", "10:00", "Floresta de São Gonçalo"], ["Joel Junio", "RUN-5G80", "Carregamento", "Predilecta Patos", "10:30", "Floresta de São Gotardo"], ["Paulo Sérgio", "RFO-7C98", "Carregamento", "FASA Patos", "12:00", "Floresta de São Gotardo"], ["Bruno Alves", "PVS-6A03", "Carregamento", "FASA Patos", "08:00", "Palha na JC; após descarga seguir para Floresta de São Gotardo"], ["Márcio Roberto", "RMU-4I16", "Após descarga", "FASA Patos", "", "Floresta de São Gotardo após descarga na FASA"], ["Evaldo Alves", "RTK-9E78", "Após descarga", "FASA Patos", "", "Floresta de São Gotardo após descarga na FASA; ir no conjunto"], ["Vicente Morais", "HBD-8A53", "Serviços Base", "BASE", "", "Serviços Base"], ["Marcelo Brito", "", "Folga", "", "", ""]], "Itaúna": [["Marcelo Ferreira", "RUN-5G77", "Carregamento", "FASA Itaúna", "08:00", "Floresta de Jaboticatubas"], ["Fernando Wellington", "MLX-2D92", "Carregamento", "FASA Itaúna", "09:00", "Floresta de Jaboticatubas"], ["José Zacarias", "HER-5F72", "Carregamento", "FASA Itaúna", "09:30", "Floresta de Jaboticatubas"], ["Ramon Diego", "RMT-4F43", "Carregamento", "FASA Itaúna", "10:00", "Floresta de Jaboticatubas"], ["Joel Silva", "RMO-4I01", "Prancha", "", "", "Jaboticatubas/Bom Despacho; alinhar troca com Washington; horário a confirmar"], ["Washington Luiz", "RMO-4I01", "Prancha", "", "", "Patos/São Gotardo"], ["Aglênio de Oliveira", "SHX-4G89", "Viagens Patos", "", "", "Viagens Patos de Minas"], ["Alessandro Ramos", "MHW-0H96", "Viagens Patos", "", "", "Viagens Patos de Minas"], ["Marcio Roberto", "RMU-4I16", "Viagens Patos", "", "", "Viagens Patos de Minas"], ["Kenderson Silva", "", "Folga", "", "", ""], ["Alessandro Ferreira", "", "Folga", "", "", ""]]},KEY='raca_escala_v2';
+let db=JSON.parse(localStorage.getItem(KEY)||'null')||{history:[SEED]};
+let needs=[],scale=[];
+const DEFAULT_CLIENTS={
+ 'Patos de Minas':['Predilecta Patos','FASA Patos','Cicopal Patrocínio','Pif Paf Patrocínio','AUMA Patos','BASE'],
+ 'Itaúna':['FASA Itaúna']
+};
+db.clients=db.clients||DEFAULT_CLIENTS;
+const DEFAULT_ORIGINS={'Patos de Minas':['Floresta São Gotardo'],'Itaúna':[]};
+db.origins=db.origins||DEFAULT_ORIGINS; db.vehicleBlocks=db.vehicleBlocks||[]; db.driverBlocks=db.driverBlocks||[]; save();
+function historySource(){return centralHistory.length?centralHistory:(db.history||[])}
+function latest(){let h=historySource();return h[h.length-1]||SEED}
+function sameRows(a,b){return JSON.stringify(a||[])===JSON.stringify(b||[])}
+function approvedUnitsForHistory(){let hist=[...historySource()].sort((a,b)=>a.date.localeCompare(b.date)),prev=null;hist.forEach(h=>{if(!Array.isArray(h._approvedUnits)){let units=[];['Patos de Minas','Itaúna'].forEach(u=>{if((h[u]||[]).length&&(!prev||!sameRows(h[u],prev[u])))units.push(u)});h._approvedUnits=units}prev=h});return hist}
+async function loadCentralHistory(){
+ const {data:es,error:e1}=await sb.from('escalas').select('id,data,unidade_id,status,observacao,aprovada_em').eq('status','aprovada').order('data');
+ if(e1)throw e1; if(!es?.length){centralHistory=[];return}
+ const ids=es.map(x=>x.id); const {data:al,error:e2}=await sb.from('alocacoes_escala').select('id,escala_id,necessidade_id,motorista_id,veiculo_id,operacao,horario,cliente_id,origem_id,observacao,status').in('escala_id',ids).order('id');
+ if(e2)throw e2; let map=new Map();
+ es.forEach(e=>{let unit=centralUnits.find(u=>u.id===e.unidade_id)?.nome;if(!unit)return;let snap=map.get(e.data)||{date:e.data,'Patos de Minas':[],'Itaúna':[],_approvedUnits:[]};snap._approvedUnits.push(unit);(al||[]).filter(a=>a.escala_id===e.id).forEach(a=>{let m=centralDrivers.find(x=>x.id===a.motorista_id)?.nome||'',v=centralVehicles.find(x=>x.id===a.veiculo_id)?.placa||'',c=centralClients.find(x=>x.id===a.cliente_id)?.nome||'',o=centralOrigins.find(x=>x.id===a.origem_id)?.nome||'';snap[unit].push([m,v,a.operacao||'',c,a.horario?String(a.horario).slice(0,5):'',[o,a.observacao||''].filter(Boolean).join('; ')])});map.set(e.data,snap)});centralHistory=[...map.values()].sort((a,b)=>a.date.localeCompare(b.date));
+}
+function lastApprovedBefore(iso,unit=document.getElementById('unit')?.value||'Patos de Minas'){let prior=approvedUnitsForHistory().filter(h=>h.date<iso&&h._approvedUnits.includes(unit)&&(h[unit]||[]).length);return prior.length?prior[prior.length-1]:null}
+function referenceForDate(iso=selectedDate()){let unit=document.getElementById('unit')?.value||'Patos de Minas',ref=lastApprovedBefore(iso,unit);return ref||SEED}
+function save(){localStorage.setItem(KEY,JSON.stringify(db))}
+function fmt(iso){let [y,m,d]=iso.split('-');return `${d}/${m}/${y}`}
+function wd(iso){return new Date(iso+'T12:00').toLocaleDateString('pt-BR',{weekday:'long'}).replace(/^./,c=>c.toUpperCase())}
+function n(s){return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()}
+function score(r){
+ let st=n(r[2]),obs=n(r[5]); if(st.includes('folga'))return {v:0,label:'Veio de folga',cls:'green'};
+ if(st.includes('manuten'))return {v:40,label:'Validar disponibilidade',cls:'red'};
+ if(st.includes('apos')||st.includes('viagens')||st.includes('prancha')||obs.includes('confirmar')||obs.includes('apos'))return {v:20,label:'Validar horário',cls:'amber'};
+ return {v:10,label:'Disponível',cls:'green'};
+}
+function pool(unit){
+ // V15.1: cadastro de motoristas vem do Supabase. A unidade-base apenas prioriza; não restringe o uso.
+ if(centralDrivers.length){
+   let uid=centralUnitId(unit),L=referenceForDate(),allRows=[...(L['Patos de Minas']||[]),...(L['Itaúna']||[])];
+   return centralDrivers.map(d=>{
+     let prev=allRows.find(r=>n(r[0])===n(d.nome));
+     let r=prev?[d.nome,prev[1]||'',prev[2]||'',prev[3]||'',prev[4]||'',prev[5]||'']:[d.nome,'','','','',''];
+     return {r,sc:score(r),home:d.unidade_base_id===uid,driverId:d.id};
+   }).sort((a,b)=>((a.home?0:15)+a.sc.v)-((b.home?0:15)+b.sc.v)||a.r[0].localeCompare(b.r[0]));
+ }
+ let L=referenceForDate(), selected=L[unit]||[], other=L[unit==='Patos de Minas'?'Itaúna':'Patos de Minas']||[];
+ let map=new Map();
+ [...selected,...other].forEach((r,idx)=>{let k=n(r[0]);let x={r,sc:score(r),home:idx<selected.length};if(!map.has(k)||(!map.get(k).home&&x.home)||x.sc.v<map.get(k).sc.v)map.set(k,x)});
+ return [...map.values()].sort((a,b)=>(a.home?0:15)+a.sc.v-((b.home?0:15)+b.sc.v));
+}
+function addNeed(x={operation:'Carregamento',origin:'',client:'',time:'',interval:30,qty:1,obs:''}){needs.push(x);renderNeeds()}
+function opts(arr,selected){return `<option value="">Selecione...</option>`+(arr||[]).map(c=>`<option ${c===selected?'selected':''}>${c}</option>`).join('')}
+function centralNamesForUnit(rows,unit){let uid=centralUnitId(unit);return rows.filter(x=>x.unidade_id===uid).map(x=>x.nome)}
+function clientOptions(unit,selected){return opts(centralClients.length?centralNamesForUnit(centralClients,unit):(db.clients[unit]||[]),selected)}
+function originOptions(unit,selected){return opts(centralOrigins.length?centralNamesForUnit(centralOrigins,unit):(db.origins[unit]||[]),selected)}
+async function addClient(i){
+ let unit=document.getElementById('unit').value,name=prompt('Nome do novo cliente / destino:'); if(!name||!name.trim())return;
+ name=name.trim();let uid=centralUnitId(unit);
+ if(centralClients.length||uid){let existing=centralClients.find(x=>x.unidade_id===uid&&n(x.nome)===n(name));if(!existing){let {data,error}=await sb.from('clientes').insert({nome:name,unidade_id:uid,ativo:true}).select('id,nome,unidade_id,ativo').single();if(error){alert('Não foi possível cadastrar o cliente: '+error.message);return}centralClients.push(data)}needs[i].client=name;renderNeeds();return}
+ db.clients[unit]=db.clients[unit]||[];if(!db.clients[unit].some(x=>n(x)===n(name)))db.clients[unit].push(name);needs[i].client=name;save();renderNeeds();
+}
+async function addOrigin(i){
+ let unit=document.getElementById('unit').value,name=prompt('Nome da nova floresta / origem / serviço:'); if(!name||!name.trim())return;
+ name=name.trim();let uid=centralUnitId(unit);
+ if(centralOrigins.length||uid){let existing=centralOrigins.find(x=>x.unidade_id===uid&&n(x.nome)===n(name));if(!existing){let {data,error}=await sb.from('origens').insert({nome:name,unidade_id:uid,ativo:true}).select('id,nome,unidade_id,ativo').single();if(error){alert('Não foi possível cadastrar a origem: '+error.message);return}centralOrigins.push(data)}needs[i].origin=name;renderNeeds();return}
+ db.origins[unit]=db.origins[unit]||[];if(!db.origins[unit].some(x=>n(x)===n(name)))db.origins[unit].push(name);needs[i].origin=name;save();renderNeeds();
+}
+function renderNeeds(){
+ let e=document.getElementById('needs'),unit=document.getElementById('unit').value;e.innerHTML='';
+ needs.forEach((x,i)=>e.innerHTML+=`<div class="need"><div class="needNo">NECESSIDADE ${i+1}</div><div class="edit">
+<div class="field"><label>Operação</label><select onchange="nu(${i},'operation',this.value)">${['Carregamento','Já carregado','Após descarga','Após manutenção','Prancha','Viagens','Serviços Base','Manutenção','Folga'].map(o=>`<option ${o===x.operation?'selected':''}>${o}</option>`).join('')}</select></div>
+<div class="field"><label>Quantidade de motoristas</label><input type="number" min="1" value="${x.qty}" onchange="nu(${i},'qty',+this.value)"></div>
+<div class="field"><label>Horário inicial</label><input type="time" value="${x.time}" onchange="nu(${i},'time',this.value)"></div>
+<div class="field"><label>Intervalo entre horários (min)</label><input type="number" min="0" step="5" value="${x.interval??30}" onchange="nu(${i},'interval',+this.value)"></div>
+<div class="field wide"><label>Cliente / destino</label><div class="clientRow"><select onchange="nu(${i},'client',this.value)">${clientOptions(unit,x.client)}</select><button class="secondary" type="button" onclick="addClient(${i})">+ Cadastrar cliente</button></div></div>
+<div class="field wide"><label>Origem / floresta / serviço</label><div class="clientRow"><select onchange="nu(${i},'origin',this.value)">${originOptions(unit,x.origin)}</select><button class="secondary" type="button" onclick="addOrigin(${i})">+ Cadastrar floresta</button></div></div>
+<div class="field wide"><label>Observação</label><textarea onchange="nu(${i},'obs',this.value)">${x.obs}</textarea></div></div><button class="danger" onclick="needs.splice(${i},1);renderNeeds()">Remover</button></div>`)
+}
+function nu(i,k,v){needs[i][k]=v}
+function addMinutes(h,m){
+ if(!h)return '';
+ let [hh,mm]=h.split(':').map(Number),t=hh*60+mm+(m||0);
+ return String(Math.floor((t%1440)/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
+}
+async function generate(){
+ let unit=document.getElementById('unit').value,p=pool(unit),used=new Set();scale=[];
+ needs.forEach(req=>{for(let q=0;q<Math.max(1,req.qty);q++){
+   let candidates=p.filter(x=>!used.has(n(x.r[0])) && !n(x.r[2]).includes('manuten') && !isDriverBlocked(x.r[0]));
+   // A driver without a known plate is not auto-assigned to a transport operation.
+   if(!['Folga','Serviços Base','Manutenção'].includes(req.operation))
+      candidates=candidates.filter(x=>!!(x.r[1]||'').trim()&&!isVehicleBlocked(x.r[1]));
+   let cand=candidates[0];
+   if(!cand){
+     scale.push({name:'PENDENTE DE MOTORISTA',plate:'',operation:req.operation,time:addMinutes(req.time,q*(req.interval||0)),client:req.client,origin:req.origin,obs:req.obs,flag:'Requer definição manual',cls:'red',prev:'sem candidato elegível'});
+     continue;
+   }
+   used.add(n(cand.r[0]));
+   scale.push({name:cand.r[0],plate:cand.r[1]||'',operation:req.operation,time:addMinutes(req.time,q*(req.interval||0)),client:req.client,origin:req.origin,obs:req.obs,flag:cand.sc.label,cls:cand.sc.cls,prev:cand.r[2]});
+ }});renderScale();await persistDraftNeeds();
+}
+async function persistDraftNeeds(){
+ let d=selectedDate(),unit=document.getElementById('unit').value,uid=centralUnitId(unit);if(!d||!uid)return;
+ const {data:old,error:e0}=await sb.from('necessidades').select('id').eq('data',d).eq('unidade_id',uid).in('status',['aberta','gerada']);if(e0){alert('Escala gerada, mas não foi possível sincronizar as necessidades: '+e0.message);return}
+ if(old?.length){let {error}=await sb.from('necessidades').delete().in('id',old.map(x=>x.id));if(error){alert('Não foi possível atualizar as necessidades centrais: '+error.message);return}}
+ let rows=needs.map(x=>({data:d,unidade_id:uid,operacao:x.operation,quantidade_motoristas:Number(x.qty)||1,horario_inicial:x.time||null,intervalo_minutos:Number(x.interval)||0,cliente_id:centralClients.find(c=>c.unidade_id===uid&&n(c.nome)===n(x.client))?.id||null,origem_id:centralOrigins.find(o=>o.unidade_id===uid&&n(o.nome)===n(x.origin))?.id||null,observacao:x.obs||null,status:'gerada'}));
+ if(!rows.length)return;let {data,error}=await sb.from('necessidades').insert(rows).select('id');if(error){alert('Escala gerada, mas não foi possível salvar as necessidades no banco central: '+error.message);return}let ids=data||[],k=0;needs.forEach((req,i)=>{req._centralId=ids[i]?.id||null;for(let q=0;q<Math.max(1,req.qty);q++){if(scale[k])scale[k].needId=req._centralId;k++}})
+}
+function eligibleDrivers(exceptIndex=-1){
+ let unit=document.getElementById('unit').value,used=new Set(scale.map((r,j)=>j===exceptIndex?'':n(r.name)).filter(Boolean));
+ return pool(unit).filter(x=>!used.has(n(x.r[0]))&&!n(x.r[2]).includes('manuten')&&!isDriverBlocked(x.r[0]));
+}
+function driverOptions(i){return `<option value="">Escolher motorista...</option>`+eligibleDrivers(i).map(x=>`<option value="${x.r[0]}">${x.r[0]} • ${x.sc.label}</option>`).join('')}
+function selectedDate(){return document.getElementById('date').value}
+function activeVehicleBlocks(){let d=selectedDate();return (centralVehicleBlocks||[]).filter(b=>b.data_inicio<=d&&(!b.data_fim||b.data_fim>=d))}
+function isVehicleBlocked(plate){let k=n(plate);return activeVehicleBlocks().some(b=>{let v=centralVehicles.find(x=>x.id===b.veiculo_id);return v&&n(v.placa)===k})}
+function renderBlockPlateOptions(){let e=document.getElementById('blockPlate');if(!e)return;let cur=e.value;e.innerHTML='<option value="">Selecione o veículo...</option>'+vehiclePool(true).map(v=>`<option value="${v.plate}">${v.plate}${v.driver?' • habitual: '+v.driver:''}</option>`).join('');if([...e.options].some(o=>o.value===cur))e.value=cur}
+async function addVehicleBlock(){let plate=document.getElementById('blockPlate').value,reason=document.getElementById('blockReason').value,start=document.getElementById('blockStart').value,end=document.getElementById('blockEnd').value,obs=document.getElementById('blockObs').value.trim(),unit=document.getElementById('unit').value;if(!plate){alert('Selecione o veículo / placa.');return}if(!start){alert('Informe a data de início da indisponibilidade.');return}if(end&&end<start){alert('A previsão de retorno não pode ser anterior ao início.');return}let v=centralVehicles.find(x=>n(x.placa)===n(plate));if(!v){alert('Veículo não encontrado no banco central.');return}let {data,error}=await sb.from('indisponibilidades_veiculos').insert({veiculo_id:v.id,unidade_id:centralUnitId(unit),motivo:reason,data_inicio:start,data_fim:end||null,observacao:obs||null,ativa:true}).select('id,veiculo_id,unidade_id,motivo,data_inicio,data_fim,observacao,ativa').single();if(error){alert('Não foi possível registrar a indisponibilidade: '+error.message);return}centralVehicleBlocks.push(data);document.getElementById('blockObs').value='';renderVehicleBlocks();renderBlockPlateOptions();if(scale.length&&isVehicleBlocked(plate)){scale.forEach(r=>{if(n(r.plate)===n(plate)){r.flag='Veículo indisponível';r.cls='red'}});renderScale()}}
+async function removeVehicleBlock(id){let {error}=await sb.from('indisponibilidades_veiculos').update({ativa:false}).eq('id',id);if(error){alert('Não foi possível liberar o veículo: '+error.message);return}centralVehicleBlocks=(centralVehicleBlocks||[]).filter(b=>b.id!==id);renderVehicleBlocks();renderBlockPlateOptions();renderScale()}
+function renderVehicleBlocks(){let e=document.getElementById('vehicleBlocks');if(!e)return;let items=activeVehicleBlocks();if(!items.length){e.innerHTML='<div class="small" style="margin-top:10px">Nenhum veículo indisponível para esta data.</div>';return}e.innerHTML=items.map(b=>{let v=centralVehicles.find(x=>x.id===b.veiculo_id),u=centralUnits.find(x=>x.id===b.unidade_id);return `<div class="workshopItem"><div class="top"><div><div class="name">${v?.placa||'Veículo'}</div><div class="rank">${b.motivo} • desde ${fmt(b.data_inicio)}${b.data_fim?' • retorno previsto '+fmt(b.data_fim):' • sem previsão de retorno'}${u?' • registrado em '+u.nome:''}${b.observacao?'<br>'+b.observacao:''}</div></div><span class="badge red">Bloqueado</span></div><div class="actions"><button class="danger" type="button" onclick="removeVehicleBlock(${b.id})">Liberar / remover bloqueio</button></div></div>`}).join('')}
+function activeDriverBlocks(){let d=selectedDate();return (centralDriverBlocks||[]).filter(b=>b.data_inicio<=d&&(!b.data_fim||b.data_fim>=d))}
+function isDriverBlocked(name){let k=n(name);return activeDriverBlocks().some(b=>{let m=centralDrivers.find(x=>x.id===b.motorista_id);return m&&n(m.nome)===k})}
+function driverPool(){let unit=document.getElementById('unit').value,uid=centralUnitId(unit);if(centralDrivers.length)return [...centralDrivers].sort((a,b)=>(a.unidade_base_id===uid?0:1)-(b.unidade_base_id===uid?0:1)||a.nome.localeCompare(b.nome)).map(x=>x.nome);let map=new Map();pool(unit).forEach(x=>{let name=x.r[0];if(name&&!map.has(n(name)))map.set(n(name),name)});return [...map.values()].sort((a,b)=>a.localeCompare(b))}
+function renderDriverBlockOptions(){let e=document.getElementById('driverBlockName');if(!e)return;let cur=e.value;e.innerHTML='<option value="">Selecione o motorista...</option>'+driverPool().map(name=>`<option value="${name}">${name}</option>`).join('');if([...e.options].some(o=>o.value===cur))e.value=cur}
+async function addDriverBlock(){let name=document.getElementById('driverBlockName').value,reason=document.getElementById('driverBlockReason').value,start=document.getElementById('driverBlockStart').value,end=document.getElementById('driverBlockEnd').value,obs=document.getElementById('driverBlockObs').value.trim(),unit=document.getElementById('unit').value;if(!name){alert('Selecione o motorista.');return}if(!start){alert('Informe a data de início.');return}if(end&&end<start){alert('A data final não pode ser anterior ao início.');return}let m=centralDrivers.find(x=>n(x.nome)===n(name));if(!m){alert('Motorista não encontrado no banco central.');return}let {data,error}=await sb.from('indisponibilidades_motoristas').insert({motorista_id:m.id,unidade_id:centralUnitId(unit),motivo:reason,data_inicio:start,data_fim:end||null,observacao:obs||null,ativa:true}).select('id,motorista_id,unidade_id,motivo,data_inicio,data_fim,observacao,ativa').single();if(error){alert('Não foi possível registrar a indisponibilidade: '+error.message);return}centralDriverBlocks.push(data);document.getElementById('driverBlockObs').value='';renderDriverBlocks();renderDriverBlockOptions();if(scale.length&&isDriverBlocked(name)){scale.forEach(r=>{if(n(r.name)===n(name)){r.flag=reason;r.cls='red'}});renderScale()}}
+async function removeDriverBlock(id){let {error}=await sb.from('indisponibilidades_motoristas').update({ativa:false}).eq('id',id);if(error){alert('Não foi possível liberar o motorista: '+error.message);return}centralDriverBlocks=(centralDriverBlocks||[]).filter(b=>b.id!==id);renderDriverBlocks();renderDriverBlockOptions();renderScale()}
+function renderDriverBlocks(){let e=document.getElementById('driverBlocks');if(!e)return;let items=activeDriverBlocks();if(!items.length){e.innerHTML='<div class="small" style="margin-top:10px">Nenhum motorista indisponível para esta data.</div>';return}e.innerHTML=items.map(b=>{let m=centralDrivers.find(x=>x.id===b.motorista_id),u=centralUnits.find(x=>x.id===b.unidade_id);return `<div class="workshopItem"><div class="top"><div><div class="name">${m?.nome||'Motorista'}</div><div class="rank">${b.motivo} • desde ${fmt(b.data_inicio)}${b.data_fim?' • até '+fmt(b.data_fim):' • sem data final'}${u?' • registrado em '+u.nome:''}${b.observacao?'<br>'+b.observacao:''}</div></div><span class="badge red">${b.motivo}</span></div><div class="actions"><button class="danger" type="button" onclick="removeDriverBlock(${b.id})">Liberar / remover situação</button></div></div>`}).join('')}
+function vehiclePool(includeBlocked=false){
+ // V15.1: cadastro de veículos vem do Supabase. A unidade-base apenas prioriza; não restringe o uso.
+ if(centralVehicles.length){
+   let uid=centralUnitId(document.getElementById('unit').value),L=referenceForDate(),allRows=[...(L['Patos de Minas']||[]),...(L['Itaúna']||[])];
+   let arr=centralVehicles.map(v=>{let prev=allRows.find(r=>n(r[1])===n(v.placa));return {plate:v.placa,driver:prev?.[0]||'',operation:prev?.[2]||'',home:v.unidade_base_id===uid,vehicleId:v.id}})
+     .sort((a,b)=>(a.home?0:1)-(b.home?0:1)||a.plate.localeCompare(b.plate));
+   return includeBlocked?arr:arr.filter(v=>!isVehicleBlocked(v.plate));
+ }
+ let L=referenceForDate(),unit=document.getElementById('unit').value,selected=L[unit]||[],other=L[unit==='Patos de Minas'?'Itaúna':'Patos de Minas']||[],map=new Map();
+ [...selected,...other].forEach((r,idx)=>{let plate=(r[1]||'').trim();if(!plate)return;let k=n(plate),x={plate,driver:r[0],operation:r[2],home:idx<selected.length};if(!map.has(k)||(!map.get(k).home&&x.home))map.set(k,x)});
+ let arr=[...map.values()].sort((a,b)=>(a.home?0:1)-(b.home?0:1)||a.plate.localeCompare(b.plate));return includeBlocked?arr:arr.filter(v=>!isVehicleBlocked(v.plate));
+}
+function eligibleVehicles(exceptIndex=-1){let used=new Set(scale.map((r,j)=>j===exceptIndex?'':n(r.plate)).filter(Boolean));return vehiclePool().filter(v=>!used.has(n(v.plate))&&!n(v.operation).includes('manuten')&&!isVehicleBlocked(v.plate))}
+function vehicleOptions(i){return `<option value="">Escolher veículo...</option>`+eligibleVehicles(i).map(v=>`<option value="${v.plate}">${v.plate}${v.driver?' • D-1: '+v.driver:''}</option>`).join('')}
+function replaceDriver(i,name){if(!name)return;if(isDriverBlocked(name)){alert('Este motorista está indisponível na data selecionada.');return}let x=pool(document.getElementById('unit').value).find(z=>n(z.r[0])===n(name));if(!x)return;scale[i].name=x.r[0];scale[i].prev=x.r[2];scale[i].flag=x.sc.label;scale[i].cls=x.sc.cls;renderScale()}
+function replaceVehicle(i,plate){if(!plate)return;if(isVehicleBlocked(plate)){alert('Este veículo está indisponível/oficina na data selecionada.');return}scale[i].plate=plate;renderScale()}
+function suggestSub(i){let atual=n(scale[i]?.name||'');let x=eligibleDrivers(i).find(c=>n(c.r[0])!==atual);if(!x){alert('Nenhum substituto elegível disponível.');return}replaceDriver(i,x.r[0])}
+function suggestVehicle(i){let atual=n(scale[i]?.plate||'');let v=eligibleVehicles(i).find(v=>n(v.plate)!==atual);if(!v){alert('Nenhum veículo elegível disponível.');return}replaceVehicle(i,v.plate)}
+function removeDriver(i){if(i<0||i>=scale.length)return;scale.splice(i,1);renderScale()}
+function renderScale(){let e=document.getElementById('scale');e.innerHTML='';scale.forEach((r,i)=>e.innerHTML+=`<div class="scale"><div class="top"><div><div class="name">${r.name}</div><div class="rank">D-1: ${r.prev||'sem informação'}</div><div class="rank"><b>Motorista:</b> ${driverFleetByName(r.name)} &nbsp; | &nbsp; <b>Veículo:</b> ${r.plate?vehicleFleetByPlate(r.plate):'SEM VEÍCULO'}</div></div><span class="badge ${r.cls||'green'}">${r.flag||'Manual'}</span></div><div class="edit">
+<div class="field wide"><label>Trocar motorista</label><div class="clientRow"><select onchange="replaceDriver(${i},this.value)">${driverOptions(i)}</select><button class="secondary" type="button" onclick="suggestSub(${i})">Sugerir motorista</button></div></div>
+<div class="field wide"><label>Trocar veículo</label><div class="clientRow"><select onchange="replaceVehicle(${i},this.value)">${vehicleOptions(i)}</select><button class="secondary" type="button" onclick="suggestVehicle(${i})">Sugerir veículo</button></div></div>
+<div class="field"><label>Motorista</label><input value="${r.name}" onchange="su(${i},'name',this.value)"></div><div class="field"><label>Placa</label><input value="${r.plate}" onchange="su(${i},'plate',this.value)"></div>
+<div class="field"><label>Operação</label><input value="${r.operation}" onchange="su(${i},'operation',this.value)"></div><div class="field"><label>Horário</label><input type="time" value="${r.time}" onchange="su(${i},'time',this.value)"></div>
+<div class="field"><label>Cliente / destino</label><input value="${r.client}" onchange="su(${i},'client',this.value)"></div><div class="field"><label>Origem / floresta</label><input value="${r.origin}" onchange="su(${i},'origin',this.value)"></div>
+<div class="field wide"><label>Observação</label><textarea onchange="su(${i},'obs',this.value)">${r.obs}</textarea></div></div><button class="danger" onclick="removeDriver(${i})">Remover motorista</button></div>`) }
+function su(i,k,v){scale[i][k]=v}
+function addManual(){scale.push({name:'PENDENTE DE MOTORISTA',plate:'',operation:'Carregamento',time:'',client:'',origin:'',obs:'',flag:'Validação manual',cls:'amber',prev:'não localizado'});renderScale()}
+function toggleMemory(){document.getElementById('memory').classList.toggle('hidden');renderMemory()}
+function renderMemory(){let unit=document.getElementById('unit').value,e=document.getElementById('memory');e.innerHTML='';(referenceForDate()[unit]||[]).forEach(r=>{let s=score(r);e.innerHTML+=`<div class="memory"><div class="top"><div class="name">${r[0]}</div><span class="badge ${s.cls}">${s.label}</span></div><div class="rank">${r[1]||'sem placa'} • ${r[2]}${r[4]?' • '+r[4]:''}${r[3]?' • '+r[3]:''}</div></div>`})}
+function sentence(r){
+ if(n(r.operation).includes('folga'))return `• ${r.name}: Folga.`;
+ let s=`• ${r.name}: ${r.operation}`; if(r.origin)s+=` ${r.origin}`; if(r.time)s+=` às ${r.time}`; if(r.client)s+=`. (${r.client})`; if(r.plate)s+=`. ${r.plate}`; if(r.obs)s+=`. ${r.obs}`; return s.replace(/\.\./g,'.')+'.'
+}
+function buildText(){let d=document.getElementById('date').value,u=document.getElementById('unit').value;let t=`Boa noite pessoal!\nSegue escala de ${wd(d)} ${fmt(d)} unidade ${u}:\n\n`+scale.map(sentence).join('\n\n');document.getElementById('output').textContent=t;return t}
+function validateScale(){
+ // Revalidação final: consulta diretamente os bloqueios gravados no momento da aprovação.
+ // Isso evita aprovar uma escala que ficou desatualizada após folga/atestado/oficina.
+ let d=selectedDate(),u=document.getElementById('unit').value;
+ let driverBlocksNow=activeDriverBlocks().map(b=>({name:centralDrivers.find(m=>m.id===b.motorista_id)?.nome||'',reason:b.motivo}));
+ let vehicleBlocksNow=activeVehicleBlocks().map(b=>({plate:centralVehicles.find(v=>v.id===b.veiculo_id)?.placa||'',reason:b.motivo}));
+
+ let blockedDriver=scale.find(r=>r.name&&driverBlocksNow.some(b=>n(b.name)===n(r.name)));
+ if(blockedDriver){
+   let b=driverBlocksNow.find(x=>n(x.name)===n(blockedDriver.name));
+   alert(`${blockedDriver.name} está indisponível (${b?.reason||'Indisponível'}) na data da escala. Substitua o motorista antes de aprovar.`);
+   return false;
+ }
+
+ let blockedVehicle=scale.find(r=>r.plate&&vehicleBlocksNow.some(b=>n(b.plate)===n(r.plate)));
+ if(blockedVehicle){
+   let b=vehicleBlocksNow.find(x=>n(x.plate)===n(blockedVehicle.plate));
+   alert(`${blockedVehicle.plate} está indisponível (${b?.reason||'Oficina/Indisponível'}) na data da escala. Substitua o veículo antes de aprovar.`);
+   return false;
+ }
+
+ let names=scale.map(r=>n(r.name)).filter(x=>x&&!x.includes('pendente'));
+ if(new Set(names).size!==names.length){alert('Existe motorista duplicado na escala. Revise antes de aprovar.');return false}
+
+ let plates=scale.filter(r=>!['folga','serviços base','manutenção'].includes(n(r.operation))).map(r=>n(r.plate)).filter(Boolean);
+ if(new Set(plates).size!==plates.length){alert('Existe veículo/placa duplicado na escala. Revise antes de aprovar.');return false}
+
+ if(scale.some(r=>n(r.name).includes('pendente')||(!['folga','serviços base','manutenção'].includes(n(r.operation))&&!r.plate))){
+   alert('Existe motorista pendente ou transporte sem veículo. Revise antes de aprovar.');
+   return false;
+ }
+ return true;
+}
+async function approve(){let d=selectedDate(),u=document.getElementById('unit').value,uid=centralUnitId(u);if(!d||!scale.length){alert('Informe a data e gere a escala.');return}if(!validateScale())return;
+ // Conflito global: impede o mesmo motorista/veículo em outra unidade no mesmo horário/data.
+ let {data:dayScales,error:ce}=await sb.from('escalas').select('id,unidade_id').eq('data',d).eq('status','aprovada');if(ce){alert('Não foi possível validar conflitos centrais: '+ce.message);return}
+ let other=(dayScales||[]).filter(e=>e.unidade_id!==uid),otherIds=other.map(e=>e.id);if(otherIds.length){let {data:oa,error:oe}=await sb.from('alocacoes_escala').select('motorista_id,veiculo_id,horario').in('escala_id',otherIds);if(oe){alert('Não foi possível validar alocações de outras unidades: '+oe.message);return}for(let r of scale){let mid=centralDrivers.find(m=>n(m.nome)===n(r.name))?.id,vid=centralVehicles.find(v=>n(v.placa)===n(r.plate))?.id,t=r.time||null;let hit=(oa||[]).find(a=>(mid&&a.motorista_id===mid||vid&&a.veiculo_id===vid)&&((!t&&!a.horario)||(t&&String(a.horario||'').slice(0,5)===t)));if(hit){alert(`${r.name}${r.plate?' / '+r.plate:''} já possui alocação em outra unidade no mesmo horário. Revise antes de aprovar.`);return}}}
+ let {data:existing,error:ee}=await sb.from('escalas').select('id,versao').eq('data',d).eq('unidade_id',uid).eq('status','aprovada');if(ee){alert('Não foi possível consultar a escala existente: '+ee.message);return}if(existing?.length&&!confirm(`Já existe escala aprovada para ${fmt(d)} - ${u}. Deseja substituir a escala existente? A versão anterior será preservada no histórico.`))return;
+ // V15.8: a versão anterior nunca é apagada. Ela é marcada como histórica/substituída.
+ let {data:allVersions,error:ve}=await sb.from('escalas').select('id,versao').eq('data',d).eq('unidade_id',uid);if(ve){alert('Não foi possível consultar o histórico de versões: '+ve.message);return}
+ let nextVersion=Math.max(0,...(allVersions||[]).map(x=>Number(x.versao)||1))+1;
+ let previousId=existing?.length?existing[0].id:null,nowIso=new Date().toISOString();
+ if(existing?.length){for(let ex of existing){let {error}=await sb.from('escalas').update({status:'cancelada',motivo_status:'Substituída por nova versão aprovada',cancelada_em:nowIso}).eq('id',ex.id);if(error){alert('Não foi possível preservar/substituir a escala anterior: '+error.message);return}}}
+ let {data:newEsc,error:se}=await sb.from('escalas').insert({data:d,unidade_id:uid,status:'aprovada',aprovada_em:nowIso,versao:nextVersion,substitui_escala_id:previousId}).select('id,versao').single();if(se){alert('Não foi possível aprovar a escala no banco central: '+se.message);return}
+ let alloc=scale.map(r=>({escala_id:newEsc.id,necessidade_id:r.needId||null,motorista_id:centralDrivers.find(m=>n(m.nome)===n(r.name))?.id||null,veiculo_id:centralVehicles.find(v=>n(v.placa)===n(r.plate))?.id||null,operacao:r.operation,horario:r.time||null,cliente_id:centralClients.find(c=>c.unidade_id===uid&&n(c.nome)===n(r.client))?.id||null,origem_id:centralOrigins.find(o=>o.unidade_id===uid&&n(o.nome)===n(r.origin))?.id||null,observacao:r.obs||null,status:'aprovada'}));
+ let {error:ae}=await sb.from('alocacoes_escala').insert(alloc);if(ae){await sb.from('escalas').update({status:'cancelada',motivo_status:'Aprovação incompleta: falha ao gravar alocações',cancelada_em:new Date().toISOString()}).eq('id',newEsc.id);alert('Não foi possível gravar as alocações: '+ae.message);return}
+ let needIds=[...new Set(scale.map(r=>r.needId).filter(Boolean))];if(needIds.length)await sb.from('necessidades').update({status:'aprovada'}).in('id',needIds);
+ await loadCentralHistory();document.getElementById('msg').textContent=`Escala ${fmt(d)} • versão ${newEsc.versao} aprovada e salva no banco central. Ela passa a ser a referência D-1 em qualquer aparelho.`;buildText();info();renderMemory()
+}
+async function shareText(){let t=buildText();if(navigator.share){try{await navigator.share({title:'Escala Raça Biomassa',text:t})}catch(e){}}else{await navigator.clipboard.writeText(t);alert('Texto copiado. Abra o WhatsApp e cole no grupo.')}}
+function info(){let iso=selectedDate(),u=document.getElementById('unit').value,ref=lastApprovedBefore(iso,u);let refTxt=ref?`Referência D-1: <b>${fmt(ref.date)}</b>`:`<b>Sem escala anterior aprovada disponível para referência</b>`;document.getElementById('info').innerHTML=`${refTxt} • Histórico central: <b>${centralHistory.length}</b> escala(s) aprovada(s).${centralDrivers.length?`<br><span class="small">Banco central: <b>${centralDrivers.length}</b> motoristas ativos • <b>${centralVehicles.length}</b> veículos ativos • <b>${centralClients.length}</b> clientes ativos • <b>${centralOrigins.length}</b> origem(ns) ativa(s).<br>Indisponibilidades centrais ativas: <b>${centralDriverBlocks.length}</b> motorista(s) • <b>${centralVehicleBlocks.length}</b> veículo(s).</span>`:''}<br><span class="small">A operação anterior é contexto; a nova escala nasce das necessidades cadastradas.</span>`;renderFridayPlan()}
+function isoLocal(d){let y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${day}`}
+function nextOperationalDay(){let d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+1);while(d.getDay()===0||d.getDay()===6)d.setDate(d.getDate()+1);return isoLocal(d)}
+function nextDow(from,dow){let d=new Date(from);d.setHours(12,0,0,0);do{d.setDate(d.getDate()+1)}while(d.getDay()!==dow);return isoLocal(d)}
+function renderFridayPlan(){let box=document.getElementById('fridayPlan');if(!box)return;let iso=selectedDate();let sel=iso?new Date(iso+'T12:00'):null;let selectedIsFriday=!!sel&&sel.getDay()===5;box.classList.toggle('hidden',!selectedIsFriday);if(!selectedIsFriday)return;let sat=nextDow(sel,6),mon=nextDow(sel,1),bm=document.getElementById('btnMonday'),bs=document.getElementById('btnSaturday');if(bm&&bs){bm.className='primary';bs.className='secondary';bm.onclick=()=>setPlanDate(mon);bs.onclick=()=>setPlanDate(sat)}}
+function setPlanDate(iso){document.getElementById('date').value=iso;resetDraft();addNeed();info();document.getElementById('blockStart').value=iso;document.getElementById('driverBlockStart').value=iso}
+function planSaturday(){let d=new Date(selectedDate()+'T12:00');setPlanDate(nextDow(d,6))}
+function planMonday(){let d=new Date(selectedDate()+'T12:00');setPlanDate(nextDow(d,1))}
+function xmlEsc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function sheetXml(name,rows){let cells=rows.map(row=>'<Row>'+row.map(v=>`<Cell><Data ss:Type="String">${xmlEsc(v)}</Data></Cell>`).join('')+'</Row>').join('');return `<Worksheet ss:Name="${xmlEsc(name)}"><Table>${cells}</Table></Worksheet>`}
+function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function baseUnitName(id){return centralUnits.find(u=>u.id===id)?.nome||'Sem unidade-base'}
+function normalizePlate(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/^([A-Z]{3})([0-9A-Z])([0-9A-Z]{2})$/,'$1-$2$3')}
+function fleetLabel(tipo,transportadora){return tipo==='TERCEIRA'?`TERCEIRA • ${transportadora||'TRANSPORTADORA NÃO INFORMADA'}`:'FROTA PRÓPRIA'}
+function driverFleetByName(name){let x=allCentralDrivers.find(r=>n(r.nome)===n(name));return fleetLabel(x?.tipo_frota,x?.transportadora)}
+function vehicleFleetByPlate(plate){let x=allCentralVehicles.find(r=>n(r.placa)===n(plate));return fleetLabel(x?.tipo_frota,x?.transportadora)}
+function toggleFleetCarrier(kind){let type=document.getElementById('new'+kind+'Fleet'),carrier=document.getElementById('new'+kind+'Carrier');if(!type||!carrier)return;let third=type.value==='TERCEIRA';carrier.disabled=!third;if(!third)carrier.value=''}
+function renderCadastros(){let box=document.getElementById('cadastrosList');if(!box)return;let ds=[...allCentralDrivers].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')),vs=[...allCentralVehicles].sort((a,b)=>a.placa.localeCompare(b.placa,'pt-BR'));box.innerHTML=`<div class="needNo">MOTORISTAS (${ds.filter(x=>x.ativo).length} ativos)</div>`+ds.map(x=>`<div class="cadItem ${x.ativo?'':'inactive'}"><div><b>${esc(x.nome)}</b><div class="cadMeta">Base: ${esc(baseUnitName(x.unidade_base_id))} • ${esc(fleetLabel(x.tipo_frota,x.transportadora))} • ${x.ativo?'Ativo':'Inativo'}</div></div><button class="${x.ativo?'danger':'secondary'}" onclick="setDriverActive(${x.id},${!x.ativo})">${x.ativo?'Inativar':'Ativar'}</button></div>`).join('')+`<div class="needNo" style="margin-top:14px">VEÍCULOS (${vs.filter(x=>x.ativo).length} ativos)</div>`+vs.map(x=>`<div class="cadItem ${x.ativo?'':'inactive'}"><div><b>${esc(x.placa)}</b><div class="cadMeta">Base: ${esc(baseUnitName(x.unidade_base_id))} • ${esc(fleetLabel(x.tipo_frota,x.transportadora))} • ${x.ativo?'Ativo':'Inativo'}</div></div><button class="${x.ativo?'danger':'secondary'}" onclick="setVehicleActive(${x.id},${!x.ativo})">${x.ativo?'Inativar':'Ativar'}</button></div>`).join('')}
+function toggleCadastros(){let el=document.getElementById('cadastrosList'),btn=document.getElementById('btnToggleCadastros');if(!el)return;let opening=(el.style.display==='none'||getComputedStyle(el).display==='none');if(opening){try{renderCadastros();if(!el.innerHTML.trim())el.innerHTML='<div class="summary">Nenhum cadastro encontrado.</div>';el.style.display='block';if(btn)btn.textContent='Ocultar cadastros ativos e inativos'}catch(e){console.error(e);el.innerHTML='<div class="summary">Não foi possível exibir os cadastros: '+String(e.message||e)+'</div>';el.style.display='block';if(btn)btn.textContent='Ocultar cadastros ativos e inativos'}}else{el.style.display='none';if(btn)btn.textContent='Ver cadastros ativos e inativos'}}
+function showCadastroFeedback(text){let el=document.getElementById('cadastroFeedback');if(!el)return;el.textContent=text;el.classList.remove('hidden')}
+async function addCentralDriver(){let nome=document.getElementById('newDriverName').value.trim(),unit=document.getElementById('newDriverUnit').value,tipo=document.getElementById('newDriverFleet').value,transportadora=document.getElementById('newDriverCarrier').value.trim();if(!nome){alert('Informe o nome do motorista.');return}if(tipo==='TERCEIRA'&&!transportadora){alert('Informe a transportadora do motorista terceiro.');return}if(allCentralDrivers.some(x=>n(x.nome)===n(nome))){alert('Este motorista já está cadastrado. Se estiver inativo, use o botão Ativar.');return}let {error}=await sb.from('motoristas').insert({nome,unidade_base_id:centralUnitId(unit),ativo:true,tipo_frota:tipo,transportadora:tipo==='TERCEIRA'?transportadora.toUpperCase():null});if(error){alert('Não foi possível cadastrar o motorista: '+error.message);return}document.getElementById('newDriverName').value='';document.getElementById('newDriverFleet').value='PROPRIA';document.getElementById('newDriverCarrier').value='';toggleFleetCarrier('Driver');await loadCentralResources();showCadastroFeedback('Motorista '+nome+' cadastrado com sucesso no banco central.');alert('Motorista '+nome+' cadastrado no banco central.')}
+async function addCentralVehicle(){let placa=normalizePlate(document.getElementById('newVehiclePlate').value),unit=document.getElementById('newVehicleUnit').value,tipo=document.getElementById('newVehicleFleet').value,transportadora=document.getElementById('newVehicleCarrier').value.trim();if(!placa){alert('Informe a placa do veículo.');return}if(tipo==='TERCEIRA'&&!transportadora){alert('Informe a transportadora do veículo terceiro.');return}if(allCentralVehicles.some(x=>n(x.placa)===n(placa))){alert('Esta placa já está cadastrada. Se estiver inativa, use o botão Ativar.');return}let {error}=await sb.from('veiculos').insert({placa,unidade_base_id:centralUnitId(unit),ativo:true,tipo_frota:tipo,transportadora:tipo==='TERCEIRA'?transportadora.toUpperCase():null});if(error){alert('Não foi possível cadastrar o veículo: '+error.message);return}document.getElementById('newVehiclePlate').value='';document.getElementById('newVehicleFleet').value='PROPRIA';document.getElementById('newVehicleCarrier').value='';toggleFleetCarrier('Vehicle');await loadCentralResources();showCadastroFeedback('Veículo '+placa+' cadastrado com sucesso no banco central.');alert('Veículo '+placa+' cadastrado no banco central.')}
+async function setDriverActive(id,ativo){let x=allCentralDrivers.find(r=>r.id===id);if(!x)return;if(!confirm(`${ativo?'Ativar':'Inativar'} o motorista ${x.nome}?`))return;let {error}=await sb.from('motoristas').update({ativo}).eq('id',id);if(error){alert('Não foi possível atualizar o motorista: '+error.message);return}await loadCentralResources()}
+async function setVehicleActive(id,ativo){let x=allCentralVehicles.find(r=>r.id===id);if(!x)return;if(!confirm(`${ativo?'Ativar':'Inativar'} o veículo ${x.placa}?`))return;let {error}=await sb.from('veiculos').update({ativo}).eq('id',id);if(error){alert('Não foi possível atualizar o veículo: '+error.message);return}await loadCentralResources()}
+async function exportExcel(){
+ if(currentProfile?.perfil!=='admin'){alert('Relatórios e exportação são exclusivos do Administrador.');return}
+ let d=selectedDate(),u=document.getElementById('unit').value;
+ document.getElementById('msg').textContent='Gerando relatório protegido...';
+ const dayRes=await sb.rpc('relatorio_escala_admin',{p_data:d});
+ if(dayRes.error){document.getElementById('msg').textContent='';alert('Relatório protegido indisponível: '+dayRes.error.message+'\n\nExecute o SQL SUPABASE_V15_6_RELATORIO_ADMIN.sql no Supabase.');return}
+ const histRes=await sb.rpc('relatorio_escala_admin',{p_data:null});
+ if(histRes.error){document.getElementById('msg').textContent='';alert('Não foi possível carregar a base histórica protegida: '+histRes.error.message);return}
+ let day=(dayRes.data||[]).filter(r=>r.unidade===u&&r.situacao==='VIGENTE');
+ if(!day.length){document.getElementById('msg').textContent='';alert('Não existe escala aprovada para esta data e unidade.');return}
+ let escala=[['Data','Dia da semana','Tipo de dia','Unidade','Motorista','Tipo Frota Motorista','Transportadora Motorista','Placa','Tipo Frota Veículo','Transportadora Veículo','Operação','Horário','Cliente / destino','Origem / floresta','Observação']];
+ let tipo=new Date(d+'T12:00').getDay()===6?'Sábado extraordinário':'Normal';day.forEach(r=>escala.push([fmt(r.data),wd(r.data),tipo,r.unidade||'',r.motorista||'',r.tipo_frota_motorista||'',r.transportadora_motorista||'',r.placa||'',r.tipo_frota_veiculo||'',r.transportadora_veiculo||'',r.operacao||'',String(r.horario||'').slice(0,5),r.cliente||'',r.origem||'',r.observacao||'']));
+ let veic=[['Placa','Unidade','Motivo','Início','Previsão de retorno','Observação','Status']];(centralVehicleBlocks||[]).forEach(b=>{let v=allCentralVehicles.find(x=>x.id===b.veiculo_id),u0=centralUnits.find(x=>x.id===b.unidade_id);veic.push([v?.placa||'',u0?.nome||'',b.motivo,fmt(b.data_inicio),b.data_fim?fmt(b.data_fim):'',b.observacao||'',b.data_inicio<=d&&(!b.data_fim||b.data_fim>=d)?'Bloqueado':'Fora da data'])});
+ let mot=[['Motorista','Unidade','Situação','Início','Fim / retorno previsto','Observação','Status']];(centralDriverBlocks||[]).forEach(b=>{let m=allCentralDrivers.find(x=>x.id===b.motorista_id),u0=centralUnits.find(x=>x.id===b.unidade_id);mot.push([m?.nome||'',u0?.nome||'',b.motivo,fmt(b.data_inicio),b.data_fim?fmt(b.data_fim):'',b.observacao||'',b.data_inicio<=d&&(!b.data_fim||b.data_fim>=d)?'Indisponível':'Fora da data'])});
+ let hist=[['Data','Dia da semana','Tipo de dia','Unidade','Versão','Situação','Motorista','Tipo Frota Motorista','Transportadora Motorista','Placa','Tipo Frota Veículo','Transportadora Veículo','Operação','Horário','Cliente / destino','Origem / floresta','Observação','Aprovada em','Cancelada em','Motivo / rastreabilidade']];(histRes.data||[]).forEach(r=>hist.push([fmt(r.data),wd(r.data),new Date(r.data+'T12:00').getDay()===6?'Sábado extraordinário':'Normal',r.unidade||'',r.versao||1,r.situacao||'',r.motorista||'',r.tipo_frota_motorista||'',r.transportadora_motorista||'',r.placa||'',r.tipo_frota_veiculo||'',r.transportadora_veiculo||'',r.operacao||'',String(r.horario||'').slice(0,5),r.cliente||'',r.origem||'',r.observacao||'',r.aprovada_em||'',r.cancelada_em||'',r.motivo_status||'']));
+ let xml=`<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">${sheetXml('Escala do Dia',escala)}${sheetXml('Oficina Veículos',veic)}${sheetXml('Motoristas Indisponíveis',mot)}${sheetXml('Base Histórica',hist)}</Workbook>`;
+ let blob=new Blob(['\ufeff'+xml],{type:'application/vnd.ms-excel'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`Escala_Raca_Biomassa_${d}_${u.replace(/\s+/g,'_')}.xls`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);document.getElementById('msg').textContent='Relatório protegido gerado com sucesso.'
+}
+function resetDraft(){needs=[];scale=[];document.getElementById('msg').textContent='';document.getElementById('output').textContent='A escala será formatada aqui.';renderNeeds();renderScale();renderVehicleBlocks();renderBlockPlateOptions();renderDriverBlocks();renderDriverBlockOptions()}
+document.getElementById('unit').onchange=()=>{resetDraft();renderMemory();document.getElementById('blockStart').value=selectedDate();document.getElementById('driverBlockStart').value=selectedDate()}
+document.getElementById('date').onchange=()=>{resetDraft();addNeed();info();document.getElementById('blockStart').value=selectedDate();document.getElementById('driverBlockStart').value=selectedDate()}
+document.getElementById('date').value=nextOperationalDay();
+addNeed();info();document.getElementById('blockStart').value=selectedDate();document.getElementById('driverBlockStart').value=selectedDate();renderVehicleBlocks();renderBlockPlateOptions();renderDriverBlocks();renderDriverBlockOptions();if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js');
+</script></body></html>
