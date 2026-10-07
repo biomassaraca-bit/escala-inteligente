@@ -1,7 +1,8 @@
+
 <!doctype html><html lang="pt-BR"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#123f2c"><link rel="manifest" href="manifest.webmanifest">
-<title>Raça Biomassa | Escala Inteligente V15.6 Supabase</title>
+<title>Raça Biomassa | Escala Inteligente V15.9 Supabase</title>
 <style>
 :root{--g:#123f2c;--g2:#216647;--bg:#eef3ef;--line:#dbe6df;--muted:#687b71;--green:#e5f3e8;--amber:#fff1c7;--red:#f9dddd}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Arial,sans-serif;color:#163329}.app{max-width:760px;margin:auto}.hero{background:var(--g);color:#fff;padding:16px 18px 20px;border-radius:0 0 24px 24px}.brand{display:flex;justify-content:space-between;align-items:center}.logo{width:150px;max-height:60px;object-fit:contain}.mascot{width:68px;height:68px;border-radius:50%;object-fit:cover;background:#fff}.hero h1{margin:12px 0 4px;font-size:22px}.hero p{margin:0;font-size:13px;opacity:.9}.wrap{padding:14px}.card{background:#fff;border-radius:18px;padding:15px;margin-bottom:12px;box-shadow:0 2px 12px #0000000d}.title{font-size:13px;font-weight:800;letter-spacing:.45px;color:var(--g);margin-bottom:10px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.field label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px}.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:14px;background:#fff}.field textarea{min-height:58px}.small{font-size:11px;color:var(--muted);line-height:1.4}.summary{background:#f5f8f6;border-radius:12px;padding:10px;font-size:13px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}button{border:0;border-radius:11px;padding:11px 13px;font-weight:700;cursor:pointer}.primary{background:var(--g);color:#fff}.secondary{background:#e4eee8;color:var(--g)}.danger{background:#f8e3e3;color:#8c2929}.need,.scale,.memory{border:1px solid var(--line);border-radius:14px;padding:11px;margin:9px 0}.top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.name{font-weight:800}.badge{font-size:11px;font-weight:700;border-radius:999px;padding:5px 8px}.green{background:var(--green);color:#17613b}.amber{background:var(--amber);color:#745700}.red{background:var(--red);color:#8a2929}.edit{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}.wide{grid-column:1/-1}.memoryHead{display:flex;justify-content:space-between;align-items:center}.hidden{display:none}.output{white-space:pre-wrap;background:#f7faf8;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:13px;line-height:1.5;max-height:360px;overflow:auto}.rank{font-size:12px;color:var(--muted);margin-top:5px}
@@ -44,7 +45,7 @@
 
 <section class="card"><div class="title">4. NECESSIDADES DO PRÓXIMO DIA</div>
 <p class="small">Cadastre TODAS as necessidades da unidade antes de gerar. Você pode incluir vários clientes e operações; o sistema consolida tudo em uma única escala.</p>
-<div class="notice">Exemplo: Predilecta + FASA + Cicopal + Pif Paf podem ser cadastrados juntos. O motorista só é utilizado uma vez na sugestão, e a aprovação é feita somente ao final da escala completa.</div>
+<div class="notice">Exemplo: Predilecta + FASA + Cicopal + Pif Paf podem ser cadastrados juntos. Motoristas e veículos podem ser reutilizados no mesmo dia em horários diferentes. O sistema bloqueia conflito no mesmo horário e sinaliza reutilizações muito próximas para validação.</div>
 <div id="needs"></div><div class="actions"><button class="secondary" onclick="addNeed()">+ Adicionar cliente / necessidade</button><button class="primary" onclick="generate()">Gerar escala inteligente</button></div></section>
 
 <section class="card"><div class="memoryHead"><div class="title" style="margin:0">MEMÓRIA D-1</div><button class="secondary" onclick="toggleMemory()">Ver / ocultar</button></div>
@@ -132,9 +133,9 @@ function approvedUnitsForHistory(){let hist=[...historySource()].sort((a,b)=>a.d
 async function loadCentralHistory(){
  const {data:es,error:e1}=await sb.from('escalas').select('id,data,unidade_id,status,observacao,aprovada_em').eq('status','aprovada').order('data');
  if(e1)throw e1; if(!es?.length){centralHistory=[];return}
- const ids=es.map(x=>x.id); const {data:al,error:e2}=await sb.from('alocacoes_escala').select('id,escala_id,necessidade_id,motorista_id,veiculo_id,operacao,horario,cliente_id,origem_id,observacao,status').in('escala_id',ids).order('id');
+ const ids=es.map(x=>x.id); const {data:al,error:e2}=await sb.from('alocacoes_escala').select('id,escala_id,necessidade_id,motorista_id,veiculo_id,operacao,horario,cliente_id,origem_id,observacao,tipo_carga,status').in('escala_id',ids).order('id');
  if(e2)throw e2; let map=new Map();
- es.forEach(e=>{let unit=centralUnits.find(u=>u.id===e.unidade_id)?.nome;if(!unit)return;let snap=map.get(e.data)||{date:e.data,'Patos de Minas':[],'Itaúna':[],_approvedUnits:[]};snap._approvedUnits.push(unit);(al||[]).filter(a=>a.escala_id===e.id).forEach(a=>{let m=centralDrivers.find(x=>x.id===a.motorista_id)?.nome||'',v=centralVehicles.find(x=>x.id===a.veiculo_id)?.placa||'',c=centralClients.find(x=>x.id===a.cliente_id)?.nome||'',o=centralOrigins.find(x=>x.id===a.origem_id)?.nome||'';snap[unit].push([m,v,a.operacao||'',c,a.horario?String(a.horario).slice(0,5):'',[o,a.observacao||''].filter(Boolean).join('; ')])});map.set(e.data,snap)});centralHistory=[...map.values()].sort((a,b)=>a.date.localeCompare(b.date));
+ es.forEach(e=>{let unit=centralUnits.find(u=>u.id===e.unidade_id)?.nome;if(!unit)return;let snap=map.get(e.data)||{date:e.data,'Patos de Minas':[],'Itaúna':[],_approvedUnits:[]};snap._approvedUnits.push(unit);(al||[]).filter(a=>a.escala_id===e.id).forEach(a=>{let m=centralDrivers.find(x=>x.id===a.motorista_id)?.nome||'',v=centralVehicles.find(x=>x.id===a.veiculo_id)?.placa||'',c=centralClients.find(x=>x.id===a.cliente_id)?.nome||'',o=centralOrigins.find(x=>x.id===a.origem_id)?.nome||'';snap[unit].push([m,v,a.operacao||'',c,a.horario?String(a.horario).slice(0,5):'',[o,a.observacao||''].filter(Boolean).join('; '),a.tipo_carga||''])});map.set(e.data,snap)});centralHistory=[...map.values()].sort((a,b)=>a.date.localeCompare(b.date));
 }
 function lastApprovedBefore(iso,unit=document.getElementById('unit')?.value||'Patos de Minas'){let prior=approvedUnitsForHistory().filter(h=>h.date<iso&&h._approvedUnits.includes(unit)&&(h[unit]||[]).length);return prior.length?prior[prior.length-1]:null}
 function referenceForDate(iso=selectedDate()){let unit=document.getElementById('unit')?.value||'Patos de Minas',ref=lastApprovedBefore(iso,unit);return ref||SEED}
@@ -163,7 +164,7 @@ function pool(unit){
  [...selected,...other].forEach((r,idx)=>{let k=n(r[0]);let x={r,sc:score(r),home:idx<selected.length};if(!map.has(k)||(!map.get(k).home&&x.home)||x.sc.v<map.get(k).sc.v)map.set(k,x)});
  return [...map.values()].sort((a,b)=>(a.home?0:15)+a.sc.v-((b.home?0:15)+b.sc.v));
 }
-function addNeed(x={operation:'Carregamento',origin:'',client:'',time:'',interval:30,qty:1,obs:''}){needs.push(x);renderNeeds()}
+function addNeed(x={operation:'Carregamento',cargo:'CAVACO',origin:'',client:'',time:'',interval:30,qty:1,obs:''}){if(!x.cargo)x.cargo='CAVACO';needs.push(x);renderNeeds()}
 function opts(arr,selected){return `<option value="">Selecione...</option>`+(arr||[]).map(c=>`<option ${c===selected?'selected':''}>${c}</option>`).join('')}
 function centralNamesForUnit(rows,unit){let uid=centralUnitId(unit);return rows.filter(x=>x.unidade_id===uid).map(x=>x.nome)}
 function clientOptions(unit,selected){return opts(centralClients.length?centralNamesForUnit(centralClients,unit):(db.clients[unit]||[]),selected)}
@@ -185,6 +186,7 @@ function renderNeeds(){
  needs.forEach((x,i)=>e.innerHTML+=`<div class="need"><div class="needNo">NECESSIDADE ${i+1}</div><div class="edit">
 <div class="field"><label>Operação</label><select onchange="nu(${i},'operation',this.value)">${['Carregamento','Já carregado','Após descarga','Após manutenção','Prancha','Viagens','Serviços Base','Manutenção','Folga'].map(o=>`<option ${o===x.operation?'selected':''}>${o}</option>`).join('')}</select></div>
 <div class="field"><label>Quantidade de motoristas</label><input type="number" min="1" value="${x.qty}" onchange="nu(${i},'qty',+this.value)"></div>
+<div class="field"><label>Tipo de carga</label><select onchange="nu(${i},'cargo',this.value)"><option value="CAVACO" ${x.cargo==='CAVACO'?'selected':''}>Cavaco</option><option value="MADEIRA" ${x.cargo==='MADEIRA'?'selected':''}>Madeira</option></select></div>
 <div class="field"><label>Horário inicial</label><input type="time" value="${x.time}" onchange="nu(${i},'time',this.value)"></div>
 <div class="field"><label>Intervalo entre horários (min)</label><input type="number" min="0" step="5" value="${x.interval??30}" onchange="nu(${i},'interval',+this.value)"></div>
 <div class="field wide"><label>Cliente / destino</label><div class="clientRow"><select onchange="nu(${i},'client',this.value)">${clientOptions(unit,x.client)}</select><button class="secondary" type="button" onclick="addClient(${i})">+ Cadastrar cliente</button></div></div>
@@ -198,31 +200,29 @@ function addMinutes(h,m){
  return String(Math.floor((t%1440)/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
 }
 async function generate(){
- let unit=document.getElementById('unit').value,p=pool(unit),used=new Set();scale=[];
- needs.forEach(req=>{for(let q=0;q<Math.max(1,req.qty);q++){
-   let candidates=p.filter(x=>!used.has(n(x.r[0])) && !n(x.r[2]).includes('manuten') && !isDriverBlocked(x.r[0]));
-   // A driver without a known plate is not auto-assigned to a transport operation.
-   if(!['Folga','Serviços Base','Manutenção'].includes(req.operation))
-      candidates=candidates.filter(x=>!!(x.r[1]||'').trim()&&!isVehicleBlocked(x.r[1]));
-   let cand=candidates[0];
-   if(!cand){
-     scale.push({name:'PENDENTE DE MOTORISTA',plate:'',operation:req.operation,time:addMinutes(req.time,q*(req.interval||0)),client:req.client,origin:req.origin,obs:req.obs,flag:'Requer definição manual',cls:'red',prev:'sem candidato elegível'});
-     continue;
-   }
-   used.add(n(cand.r[0]));
-   scale.push({name:cand.r[0],plate:cand.r[1]||'',operation:req.operation,time:addMinutes(req.time,q*(req.interval||0)),client:req.client,origin:req.origin,obs:req.obs,flag:cand.sc.label,cls:cand.sc.cls,prev:cand.r[2]});
- }});renderScale();await persistDraftNeeds();
+  let unit=document.getElementById('unit').value,p=pool(unit);scale=[];
+  needs.forEach(req=>{for(let q=0;q<Math.max(1,req.qty);q++){
+    let slotTime=addMinutes(req.time,q*(req.interval||0));
+    let candidates=p.filter(x=>!n(x.r[2]).includes('manuten')&&!isDriverBlocked(x.r[0])&&!resourceConflictAt('driver',x.r[0],slotTime));
+    if(!['Folga','Serviços Base','Manutenção'].includes(req.operation)) candidates=candidates.filter(x=>!!(x.r[1]||'').trim()&&!isVehicleBlocked(x.r[1])&&!resourceConflictAt('vehicle',x.r[1],slotTime));
+    candidates.sort((a,b)=>resourceUseCount('driver',a.r[0])-resourceUseCount('driver',b.r[0])||((a.home?0:15)+a.sc.v)-((b.home?0:15)+b.sc.v)||a.r[0].localeCompare(b.r[0]));
+    let cand=candidates[0];
+    if(!cand){scale.push({name:'PENDENTE DE MOTORISTA',plate:'',operation:req.operation,cargo:req.cargo||'CAVACO',time:slotTime,client:req.client,origin:req.origin,obs:req.obs,flag:'Requer definição manual',cls:'red',prev:'sem candidato elegível'});continue;}
+    scale.push({name:cand.r[0],plate:cand.r[1]||'',operation:req.operation,cargo:req.cargo||'CAVACO',time:slotTime,client:req.client,origin:req.origin,obs:req.obs,flag:cand.sc.label,cls:cand.sc.cls,prev:cand.r[2]});
+  }});renderScale();await persistDraftNeeds();
 }
 async function persistDraftNeeds(){
  let d=selectedDate(),unit=document.getElementById('unit').value,uid=centralUnitId(unit);if(!d||!uid)return;
  const {data:old,error:e0}=await sb.from('necessidades').select('id').eq('data',d).eq('unidade_id',uid).in('status',['aberta','gerada']);if(e0){alert('Escala gerada, mas não foi possível sincronizar as necessidades: '+e0.message);return}
  if(old?.length){let {error}=await sb.from('necessidades').delete().in('id',old.map(x=>x.id));if(error){alert('Não foi possível atualizar as necessidades centrais: '+error.message);return}}
- let rows=needs.map(x=>({data:d,unidade_id:uid,operacao:x.operation,quantidade_motoristas:Number(x.qty)||1,horario_inicial:x.time||null,intervalo_minutos:Number(x.interval)||0,cliente_id:centralClients.find(c=>c.unidade_id===uid&&n(c.nome)===n(x.client))?.id||null,origem_id:centralOrigins.find(o=>o.unidade_id===uid&&n(o.nome)===n(x.origin))?.id||null,observacao:x.obs||null,status:'gerada'}));
+ let rows=needs.map(x=>({data:d,unidade_id:uid,operacao:x.operation,quantidade_motoristas:Number(x.qty)||1,horario_inicial:x.time||null,intervalo_minutos:Number(x.interval)||0,cliente_id:centralClients.find(c=>c.unidade_id===uid&&n(c.nome)===n(x.client))?.id||null,origem_id:centralOrigins.find(o=>o.unidade_id===uid&&n(o.nome)===n(x.origin))?.id||null,observacao:x.obs||null,tipo_carga:x.cargo||'CAVACO',status:'gerada'}));
  if(!rows.length)return;let {data,error}=await sb.from('necessidades').insert(rows).select('id');if(error){alert('Escala gerada, mas não foi possível salvar as necessidades no banco central: '+error.message);return}let ids=data||[],k=0;needs.forEach((req,i)=>{req._centralId=ids[i]?.id||null;for(let q=0;q<Math.max(1,req.qty);q++){if(scale[k])scale[k].needId=req._centralId;k++}})
 }
-function eligibleDrivers(exceptIndex=-1){
- let unit=document.getElementById('unit').value,used=new Set(scale.map((r,j)=>j===exceptIndex?'':n(r.name)).filter(Boolean));
- return pool(unit).filter(x=>!used.has(n(x.r[0]))&&!n(x.r[2]).includes('manuten')&&!isDriverBlocked(x.r[0]));
+function minutesOf(h){if(!h)return null;let [hh,mm]=String(h).slice(0,5).split(':').map(Number);return hh*60+mm}
+function resourceConflictAt(kind,value,time,exceptIndex=-1){if(!value||!time)return false;let key=n(value);return scale.some((r,j)=>j!==exceptIndex&&n(kind==='driver'?r.name:r.plate)===key&&r.time===time)}
+function resourceUseCount(kind,value,exceptIndex=-1){let key=n(value);return scale.filter((r,j)=>j!==exceptIndex&&n(kind==='driver'?r.name:r.plate)===key).length}
+function closeReuse(kind,value,time,exceptIndex=-1,windowMin=120){let key=n(value),t=minutesOf(time);if(!key||t===null)return [];return scale.filter((r,j)=>{if(j===exceptIndex||n(kind==='driver'?r.name:r.plate)!==key)return false;let x=minutesOf(r.time);return x!==null&&Math.abs(x-t)>0&&Math.abs(x-t)<windowMin})}
+function eligibleDrivers(exceptIndex=-1){let time=scale[exceptIndex]?.time||'';return pool(document.getElementById('unit').value).filter(x=>!n(x.r[2]).includes('manuten')&&!isDriverBlocked(x.r[0])&&!resourceConflictAt('driver',x.r[0],time,exceptIndex)).sort((a,b)=>resourceUseCount('driver',a.r[0],exceptIndex)-resourceUseCount('driver',b.r[0],exceptIndex)||a.r[0].localeCompare(b.r[0]))
 }
 function driverOptions(i){return `<option value="">Escolher motorista...</option>`+eligibleDrivers(i).map(x=>`<option value="${x.r[0]}">${x.r[0]} • ${x.sc.label}</option>`).join('')}
 function selectedDate(){return document.getElementById('date').value}
@@ -251,10 +251,10 @@ function vehiclePool(includeBlocked=false){
  [...selected,...other].forEach((r,idx)=>{let plate=(r[1]||'').trim();if(!plate)return;let k=n(plate),x={plate,driver:r[0],operation:r[2],home:idx<selected.length};if(!map.has(k)||(!map.get(k).home&&x.home))map.set(k,x)});
  let arr=[...map.values()].sort((a,b)=>(a.home?0:1)-(b.home?0:1)||a.plate.localeCompare(b.plate));return includeBlocked?arr:arr.filter(v=>!isVehicleBlocked(v.plate));
 }
-function eligibleVehicles(exceptIndex=-1){let used=new Set(scale.map((r,j)=>j===exceptIndex?'':n(r.plate)).filter(Boolean));return vehiclePool().filter(v=>!used.has(n(v.plate))&&!n(v.operation).includes('manuten')&&!isVehicleBlocked(v.plate))}
+function eligibleVehicles(exceptIndex=-1){let time=scale[exceptIndex]?.time||'';return vehiclePool().filter(v=>!n(v.operation).includes('manuten')&&!isVehicleBlocked(v.plate)&&!resourceConflictAt('vehicle',v.plate,time,exceptIndex)).sort((a,b)=>resourceUseCount('vehicle',a.plate,exceptIndex)-resourceUseCount('vehicle',b.plate,exceptIndex)||a.plate.localeCompare(b.plate))}
 function vehicleOptions(i){return `<option value="">Escolher veículo...</option>`+eligibleVehicles(i).map(v=>`<option value="${v.plate}">${v.plate}${v.driver?' • D-1: '+v.driver:''}</option>`).join('')}
-function replaceDriver(i,name){if(!name)return;if(isDriverBlocked(name)){alert('Este motorista está indisponível na data selecionada.');return}let x=pool(document.getElementById('unit').value).find(z=>n(z.r[0])===n(name));if(!x)return;scale[i].name=x.r[0];scale[i].prev=x.r[2];scale[i].flag=x.sc.label;scale[i].cls=x.sc.cls;renderScale()}
-function replaceVehicle(i,plate){if(!plate)return;if(isVehicleBlocked(plate)){alert('Este veículo está indisponível/oficina na data selecionada.');return}scale[i].plate=plate;renderScale()}
+function replaceDriver(i,name){if(!name)return;if(resourceConflictAt('driver',name,scale[i]?.time,i)){alert('Este motorista já está alocado neste mesmo horário. Escolha outro horário ou motorista.');return}if(isDriverBlocked(name)){alert('Este motorista está indisponível na data selecionada.');return}let x=pool(document.getElementById('unit').value).find(z=>n(z.r[0])===n(name));if(!x)return;scale[i].name=x.r[0];scale[i].prev=x.r[2];scale[i].flag=x.sc.label;scale[i].cls=x.sc.cls;renderScale()}
+function replaceVehicle(i,plate){if(!plate)return;if(resourceConflictAt('vehicle',plate,scale[i]?.time,i)){alert('Este veículo já está alocado neste mesmo horário. Escolha outro horário ou veículo.');return}if(isVehicleBlocked(plate)){alert('Este veículo está indisponível/oficina na data selecionada.');return}scale[i].plate=plate;renderScale()}
 function suggestSub(i){let atual=n(scale[i]?.name||'');let x=eligibleDrivers(i).find(c=>n(c.r[0])!==atual);if(!x){alert('Nenhum substituto elegível disponível.');return}replaceDriver(i,x.r[0])}
 function suggestVehicle(i){let atual=n(scale[i]?.plate||'');let v=eligibleVehicles(i).find(v=>n(v.plate)!==atual);if(!v){alert('Nenhum veículo elegível disponível.');return}replaceVehicle(i,v.plate)}
 function removeDriver(i){if(i<0||i>=scale.length)return;scale.splice(i,1);renderScale()}
@@ -262,16 +262,16 @@ function renderScale(){let e=document.getElementById('scale');e.innerHTML='';sca
 <div class="field wide"><label>Trocar motorista</label><div class="clientRow"><select onchange="replaceDriver(${i},this.value)">${driverOptions(i)}</select><button class="secondary" type="button" onclick="suggestSub(${i})">Sugerir motorista</button></div></div>
 <div class="field wide"><label>Trocar veículo</label><div class="clientRow"><select onchange="replaceVehicle(${i},this.value)">${vehicleOptions(i)}</select><button class="secondary" type="button" onclick="suggestVehicle(${i})">Sugerir veículo</button></div></div>
 <div class="field"><label>Motorista</label><input value="${r.name}" onchange="su(${i},'name',this.value)"></div><div class="field"><label>Placa</label><input value="${r.plate}" onchange="su(${i},'plate',this.value)"></div>
-<div class="field"><label>Operação</label><input value="${r.operation}" onchange="su(${i},'operation',this.value)"></div><div class="field"><label>Horário</label><input type="time" value="${r.time}" onchange="su(${i},'time',this.value)"></div>
+<div class="field"><label>Operação</label><input value="${r.operation}" onchange="su(${i},'operation',this.value)"></div><div class="field"><label>Tipo de carga</label><select onchange="su(${i},'cargo',this.value)"><option value="CAVACO" ${(r.cargo||'CAVACO')==='CAVACO'?'selected':''}>Cavaco</option><option value="MADEIRA" ${r.cargo==='MADEIRA'?'selected':''}>Madeira</option></select></div><div class="field"><label>Horário</label><input type="time" value="${r.time}" onchange="su(${i},'time',this.value)"></div>
 <div class="field"><label>Cliente / destino</label><input value="${r.client}" onchange="su(${i},'client',this.value)"></div><div class="field"><label>Origem / floresta</label><input value="${r.origin}" onchange="su(${i},'origin',this.value)"></div>
 <div class="field wide"><label>Observação</label><textarea onchange="su(${i},'obs',this.value)">${r.obs}</textarea></div></div><button class="danger" onclick="removeDriver(${i})">Remover motorista</button></div>`) }
 function su(i,k,v){scale[i][k]=v}
-function addManual(){scale.push({name:'PENDENTE DE MOTORISTA',plate:'',operation:'Carregamento',time:'',client:'',origin:'',obs:'',flag:'Validação manual',cls:'amber',prev:'não localizado'});renderScale()}
+function addManual(){scale.push({name:'PENDENTE DE MOTORISTA',plate:'',operation:'Carregamento',cargo:'CAVACO',time:'',client:'',origin:'',obs:'',flag:'Validação manual',cls:'amber',prev:'não localizado'});renderScale()}
 function toggleMemory(){document.getElementById('memory').classList.toggle('hidden');renderMemory()}
 function renderMemory(){let unit=document.getElementById('unit').value,e=document.getElementById('memory');e.innerHTML='';(referenceForDate()[unit]||[]).forEach(r=>{let s=score(r);e.innerHTML+=`<div class="memory"><div class="top"><div class="name">${r[0]}</div><span class="badge ${s.cls}">${s.label}</span></div><div class="rank">${r[1]||'sem placa'} • ${r[2]}${r[4]?' • '+r[4]:''}${r[3]?' • '+r[3]:''}</div></div>`})}
 function sentence(r){
  if(n(r.operation).includes('folga'))return `• ${r.name}: Folga.`;
- let s=`• ${r.name}: ${r.operation}`; if(r.origin)s+=` ${r.origin}`; if(r.time)s+=` às ${r.time}`; if(r.client)s+=`. (${r.client})`; if(r.plate)s+=`. ${r.plate}`; if(r.obs)s+=`. ${r.obs}`; return s.replace(/\.\./g,'.')+'.'
+ let s=`• ${r.name}: ${r.operation}`; if(r.origin)s+=` ${r.origin}`; if(r.time)s+=` às ${r.time}`; if(r.client)s+=`. (${r.client})`; if(r.plate)s+=`. ${r.plate}`; if(r.cargo)s+=`. ${r.cargo==='MADEIRA'?'Madeira':'Cavaco'}`; if(r.obs)s+=`. ${r.obs}`; return s.replace(/\.\./g,'.')+'.'
 }
 function buildText(){let d=document.getElementById('date').value,u=document.getElementById('unit').value;let t=`Boa noite pessoal!\nSegue escala de ${wd(d)} ${fmt(d)} unidade ${u}:\n\n`+scale.map(sentence).join('\n\n');document.getElementById('output').textContent=t;return t}
 function validateScale(){
@@ -295,11 +295,11 @@ function validateScale(){
    return false;
  }
 
- let names=scale.map(r=>n(r.name)).filter(x=>x&&!x.includes('pendente'));
- if(new Set(names).size!==names.length){alert('Existe motorista duplicado na escala. Revise antes de aprovar.');return false}
-
- let plates=scale.filter(r=>!['folga','serviços base','manutenção'].includes(n(r.operation))).map(r=>n(r.plate)).filter(Boolean);
- if(new Set(plates).size!==plates.length){alert('Existe veículo/placa duplicado na escala. Revise antes de aprovar.');return false}
+ for(let i=0;i<scale.length;i++){for(let j=i+1;j<scale.length;j++){
+   if(scale[i].time&&scale[i].time===scale[j].time&&n(scale[i].name)&&!n(scale[i].name).includes('pendente')&&n(scale[i].name)===n(scale[j].name)){alert(`${scale[i].name} está duplicado no mesmo horário (${scale[i].time}). Revise antes de aprovar.`);return false}
+   if(scale[i].time&&scale[i].time===scale[j].time&&n(scale[i].plate)&&n(scale[i].plate)===n(scale[j].plate)){alert(`${scale[i].plate} está duplicada no mesmo horário (${scale[i].time}). Revise antes de aprovar.`);return false}
+ }}
+ let warnings=[];scale.forEach((r,i)=>{if(closeReuse('driver',r.name,r.time,i).length)warnings.push(`Motorista ${r.name} reutilizado com intervalo menor que 2 horas.`);if(r.plate&&closeReuse('vehicle',r.plate,r.time,i).length)warnings.push(`Placa ${r.plate} reutilizada com intervalo menor que 2 horas.`)});warnings=[...new Set(warnings)];if(warnings.length&&!confirm('ATENÇÃO — reutilização próxima de recurso:\n\n'+warnings.join('\n')+'\n\nDeseja validar manualmente e continuar?'))return false;
 
  if(scale.some(r=>n(r.name).includes('pendente')||(!['folga','serviços base','manutenção'].includes(n(r.operation))&&!r.plate))){
    alert('Existe motorista pendente ou transporte sem veículo. Revise antes de aprovar.');
@@ -318,7 +318,7 @@ async function approve(){let d=selectedDate(),u=document.getElementById('unit').
  let previousId=existing?.length?existing[0].id:null,nowIso=new Date().toISOString();
  if(existing?.length){for(let ex of existing){let {error}=await sb.from('escalas').update({status:'cancelada',motivo_status:'Substituída por nova versão aprovada',cancelada_em:nowIso}).eq('id',ex.id);if(error){alert('Não foi possível preservar/substituir a escala anterior: '+error.message);return}}}
  let {data:newEsc,error:se}=await sb.from('escalas').insert({data:d,unidade_id:uid,status:'aprovada',aprovada_em:nowIso,versao:nextVersion,substitui_escala_id:previousId}).select('id,versao').single();if(se){alert('Não foi possível aprovar a escala no banco central: '+se.message);return}
- let alloc=scale.map(r=>({escala_id:newEsc.id,necessidade_id:r.needId||null,motorista_id:centralDrivers.find(m=>n(m.nome)===n(r.name))?.id||null,veiculo_id:centralVehicles.find(v=>n(v.placa)===n(r.plate))?.id||null,operacao:r.operation,horario:r.time||null,cliente_id:centralClients.find(c=>c.unidade_id===uid&&n(c.nome)===n(r.client))?.id||null,origem_id:centralOrigins.find(o=>o.unidade_id===uid&&n(o.nome)===n(r.origin))?.id||null,observacao:r.obs||null,status:'aprovada'}));
+ let alloc=scale.map(r=>({escala_id:newEsc.id,necessidade_id:r.needId||null,motorista_id:centralDrivers.find(m=>n(m.nome)===n(r.name))?.id||null,veiculo_id:centralVehicles.find(v=>n(v.placa)===n(r.plate))?.id||null,operacao:r.operation,horario:r.time||null,cliente_id:centralClients.find(c=>c.unidade_id===uid&&n(c.nome)===n(r.client))?.id||null,origem_id:centralOrigins.find(o=>o.unidade_id===uid&&n(o.nome)===n(r.origin))?.id||null,observacao:r.obs||null,tipo_carga:r.cargo||'CAVACO',status:'aprovada'}));
  let {error:ae}=await sb.from('alocacoes_escala').insert(alloc);if(ae){await sb.from('escalas').update({status:'cancelada',motivo_status:'Aprovação incompleta: falha ao gravar alocações',cancelada_em:new Date().toISOString()}).eq('id',newEsc.id);alert('Não foi possível gravar as alocações: '+ae.message);return}
  let needIds=[...new Set(scale.map(r=>r.needId).filter(Boolean))];if(needIds.length)await sb.from('necessidades').update({status:'aprovada'}).in('id',needIds);
  await loadCentralHistory();document.getElementById('msg').textContent=`Escala ${fmt(d)} • versão ${newEsc.versao} aprovada e salva no banco central. Ela passa a ser a referência D-1 em qualquer aparelho.`;buildText();info();renderMemory()
@@ -353,17 +353,19 @@ async function exportExcel(){
  let d=selectedDate(),u=document.getElementById('unit').value;
  document.getElementById('msg').textContent='Gerando relatório protegido...';
  const dayRes=await sb.rpc('relatorio_escala_admin',{p_data:d});
- if(dayRes.error){document.getElementById('msg').textContent='';alert('Relatório protegido indisponível: '+dayRes.error.message+'\n\nExecute o SQL SUPABASE_V15_6_RELATORIO_ADMIN.sql no Supabase.');return}
+ if(dayRes.error){document.getElementById('msg').textContent='';alert('Relatório protegido indisponível: '+dayRes.error.message+'\n\nExecute o SQL SUPABASE_V15_9_ATUALIZACAO.sql no Supabase.');return}
  const histRes=await sb.rpc('relatorio_escala_admin',{p_data:null});
  if(histRes.error){document.getElementById('msg').textContent='';alert('Não foi possível carregar a base histórica protegida: '+histRes.error.message);return}
  let day=(dayRes.data||[]).filter(r=>r.unidade===u&&r.situacao==='VIGENTE');
  if(!day.length){document.getElementById('msg').textContent='';alert('Não existe escala aprovada para esta data e unidade.');return}
- let escala=[['Data','Dia da semana','Tipo de dia','Unidade','Motorista','Tipo Frota Motorista','Transportadora Motorista','Placa','Tipo Frota Veículo','Transportadora Veículo','Operação','Horário','Cliente / destino','Origem / floresta','Observação']];
- let tipo=new Date(d+'T12:00').getDay()===6?'Sábado extraordinário':'Normal';day.forEach(r=>escala.push([fmt(r.data),wd(r.data),tipo,r.unidade||'',r.motorista||'',r.tipo_frota_motorista||'',r.transportadora_motorista||'',r.placa||'',r.tipo_frota_veiculo||'',r.transportadora_veiculo||'',r.operacao||'',String(r.horario||'').slice(0,5),r.cliente||'',r.origem||'',r.observacao||'']));
+ let escala=[['Data','Dia da semana','Tipo de dia','Unidade','Motorista','Tipo Frota Motorista','Transportadora Motorista','Placa','Tipo Frota Veículo','Transportadora Veículo','Operação','Tipo de Carga','Horário','Cliente / destino','Origem / floresta','Observação']];
+ let tipo=new Date(d+'T12:00').getDay()===6?'Sábado extraordinário':'Normal';day.forEach(r=>escala.push([fmt(r.data),wd(r.data),tipo,r.unidade||'',r.motorista||'',r.tipo_frota_motorista||'',r.transportadora_motorista||'',r.placa||'',r.tipo_frota_veiculo||'',r.transportadora_veiculo||'',r.operacao||'',r.tipo_carga||'',String(r.horario||'').slice(0,5),r.cliente||'',r.origem||'',r.observacao||'']));
  let veic=[['Placa','Unidade','Motivo','Início','Previsão de retorno','Observação','Status']];(centralVehicleBlocks||[]).forEach(b=>{let v=allCentralVehicles.find(x=>x.id===b.veiculo_id),u0=centralUnits.find(x=>x.id===b.unidade_id);veic.push([v?.placa||'',u0?.nome||'',b.motivo,fmt(b.data_inicio),b.data_fim?fmt(b.data_fim):'',b.observacao||'',b.data_inicio<=d&&(!b.data_fim||b.data_fim>=d)?'Bloqueado':'Fora da data'])});
  let mot=[['Motorista','Unidade','Situação','Início','Fim / retorno previsto','Observação','Status']];(centralDriverBlocks||[]).forEach(b=>{let m=allCentralDrivers.find(x=>x.id===b.motorista_id),u0=centralUnits.find(x=>x.id===b.unidade_id);mot.push([m?.nome||'',u0?.nome||'',b.motivo,fmt(b.data_inicio),b.data_fim?fmt(b.data_fim):'',b.observacao||'',b.data_inicio<=d&&(!b.data_fim||b.data_fim>=d)?'Indisponível':'Fora da data'])});
- let hist=[['Data','Dia da semana','Tipo de dia','Unidade','Versão','Situação','Motorista','Tipo Frota Motorista','Transportadora Motorista','Placa','Tipo Frota Veículo','Transportadora Veículo','Operação','Horário','Cliente / destino','Origem / floresta','Observação','Aprovada em','Cancelada em','Motivo / rastreabilidade']];(histRes.data||[]).forEach(r=>hist.push([fmt(r.data),wd(r.data),new Date(r.data+'T12:00').getDay()===6?'Sábado extraordinário':'Normal',r.unidade||'',r.versao||1,r.situacao||'',r.motorista||'',r.tipo_frota_motorista||'',r.transportadora_motorista||'',r.placa||'',r.tipo_frota_veiculo||'',r.transportadora_veiculo||'',r.operacao||'',String(r.horario||'').slice(0,5),r.cliente||'',r.origem||'',r.observacao||'',r.aprovada_em||'',r.cancelada_em||'',r.motivo_status||'']));
- let xml=`<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">${sheetXml('Escala do Dia',escala)}${sheetXml('Oficina Veículos',veic)}${sheetXml('Motoristas Indisponíveis',mot)}${sheetXml('Base Histórica',hist)}</Workbook>`;
+ let hist=[['Data','Dia da semana','Tipo de dia','Unidade','Versão','Situação','Motorista','Tipo Frota Motorista','Transportadora Motorista','Placa','Tipo Frota Veículo','Transportadora Veículo','Operação','Tipo de Carga','Horário','Cliente / destino','Origem / floresta','Observação','Aprovada em','Cancelada em','Motivo / rastreabilidade']];(histRes.data||[]).forEach(r=>hist.push([fmt(r.data),wd(r.data),new Date(r.data+'T12:00').getDay()===6?'Sábado extraordinário':'Normal',r.unidade||'',r.versao||1,r.situacao||'',r.motorista||'',r.tipo_frota_motorista||'',r.transportadora_motorista||'',r.placa||'',r.tipo_frota_veiculo||'',r.transportadora_veiculo||'',r.operacao||'',r.tipo_carga||'',String(r.horario||'').slice(0,5),r.cliente||'',r.origem||'',r.observacao||'',r.aprovada_em||'',r.cancelada_em||'',r.motivo_status||'']));
+ const utilRes=await sb.rpc('relatorio_utilizacao_frota_admin',{p_data:d,p_unidade_id:centralUnitId(u)});if(utilRes.error){document.getElementById('msg').textContent='';alert('Não foi possível carregar a utilização da frota: '+utilRes.error.message);return}
+ let util=[['Placa','Tipo Frota','Transportadora','Unidade-base','Situação','Quantidade de utilizações','Motorista(s)','Horário(s)']];(utilRes.data||[]).forEach(r=>util.push([r.placa||'',r.tipo_frota||'',r.transportadora||'',r.unidade_base||'',r.situacao||'',String(r.quantidade_utilizacoes??0),r.motoristas||'',r.horarios||'']));
+ let xml=`<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">${sheetXml('Escala do Dia',escala)}${sheetXml('Utilização da Frota',util)}${sheetXml('Oficina Veículos',veic)}${sheetXml('Motoristas Indisponíveis',mot)}${sheetXml('Base Histórica',hist)}</Workbook>`;
  let blob=new Blob(['\ufeff'+xml],{type:'application/vnd.ms-excel'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`Escala_Raca_Biomassa_${d}_${u.replace(/\s+/g,'_')}.xls`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);document.getElementById('msg').textContent='Relatório protegido gerado com sucesso.'
 }
 function resetDraft(){needs=[];scale=[];document.getElementById('msg').textContent='';document.getElementById('output').textContent='A escala será formatada aqui.';renderNeeds();renderScale();renderVehicleBlocks();renderBlockPlateOptions();renderDriverBlocks();renderDriverBlockOptions()}
