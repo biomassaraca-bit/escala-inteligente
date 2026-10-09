@@ -311,7 +311,7 @@ async function addOrigin(i){
 function renderNeeds(){
  let e=document.getElementById('needs'),unit=document.getElementById('unit').value;e.innerHTML='';
  needs.forEach((x,i)=>e.innerHTML+=`<div class="need"><div class="needNo">NECESSIDADE ${i+1}</div><div class="edit">
-<div class="field"><label>Operação</label><select onchange="nu(${i},'operation',this.value)">${['Carregamento','Já carregado','Após descarga','Após manutenção','Prancha','Viagens','Serviços Base','Manutenção','Levar caminhão à oficina','Folga'].map(o=>`<option ${o===x.operation?'selected':''}>${o}</option>`).join('')}</select></div>
+<div class="field"><label>Operação</label><select onchange="nu(${i},'operation',this.value)">${['Carregamento','Já carregado','Após descarga','Após manutenção','Prancha','Viagens','Serviços Base','Manutenção','Levar caminhão à oficina','Transporte de Máquinas','Folga'].map(o=>`<option ${o===x.operation?'selected':''}>${o}</option>`).join('')}</select></div>
 <div class="field"><label>Quantidade de motoristas</label><input type="number" min="1" value="${x.qty}" onchange="nu(${i},'qty',+this.value)"></div>
 <div class="field"><label>Tipo de carga</label><select onchange="nu(${i},'cargo',this.value)"><option value="CAVACO" ${x.cargo==='CAVACO'?'selected':''}>Cavaco</option><option value="MADEIRA" ${x.cargo==='MADEIRA'?'selected':''}>Madeira</option><option value="SABUGO DE MILHO" ${x.cargo==='SABUGO DE MILHO'?'selected':''}>Sabugo de Milho</option></select></div>
 <div class="field"><label>Horário inicial</label><input type="time" value="${x.time}" onchange="nu(${i},'time',this.value)"></div>
@@ -522,6 +522,14 @@ async function exportExcel(){
   const {data,error}=await sb.rpc('relatorio_escala_admin',{p_data:null});
   if(error)throw error;
   const rows=data||[];
+  // O relatório oficial tem como fonte exclusiva as alocações de escalas aprovadas.
+  // Conciliação preventiva: interrompe a exportação se o retorno do RPC não for coerente.
+  const approvedRows=rows.filter(r=>r.situacao==='VIGENTE');
+  const identity=x=>n(String(x||'').trim());
+  for(const r of approvedRows){
+   if(r.motorista&&!allCentralDrivers.some(m=>identity(m.nome)===identity(r.motorista)))throw Error('Motorista da escala aprovada não localizado no cadastro: '+r.motorista+' em '+r.data);
+   if(r.placa&&!allCentralVehicles.some(v=>identity(v.placa)===identity(r.placa)))throw Error('Placa da escala aprovada não localizada no cadastro: '+r.placa+' em '+r.data);
+  }
   let vig=[['Data','Dia da semana','Unidade','Motorista','Tipo Frota Motorista','Transportadora Motorista','Placa','Tipo Frota Veículo','Transportadora Veículo','Operação','Tipo de Carga','Horário','Cliente / destino','Origem / floresta','Observação','Versão','Aprovada em']];
   let hist=[['Data','Dia da semana','Unidade','Versão','Situação','Motorista','Tipo Frota Motorista','Transportadora Motorista','Placa','Tipo Frota Veículo','Transportadora Veículo','Operação','Tipo de Carga','Horário','Cliente / destino','Origem / floresta','Observação','Aprovada em','Cancelada em','Motivo / rastreabilidade']];
   rows.forEach(r=>{
@@ -531,27 +539,27 @@ async function exportExcel(){
   });
   // Relatórios de situação por data: incluir TODOS os recursos ativos, não apenas bloqueados.
   // Datas de referência: dias que possuem escala aprovada no histórico completo.
-  const dates=[...new Set(rows.map(r=>String(r.data||'').slice(0,10)).filter(Boolean))].sort();
-  const dateList=dates.length?dates:[selectedDate()];
+  const dates=[...new Set(approvedRows.map(r=>String(r.data||'').slice(0,10)).filter(Boolean))].sort();
+  const dateList=dates; // Somente datas com escala registrada no banco central.
   const toBR=d=>/^\d{4}-\d{2}-\d{2}$/.test(String(d||''))?fmt(d):String(d||'');
-  const mot=[['Data','Motorista','Unidade-base','Tipo de frota','Transportadora','Cadastro','Situação','Operação / motivo','Horário','Unidade da escala','Cliente / destino','Observação']];
-  const veic=[['Data','Placa','Unidade-base','Tipo de frota','Transportadora','Cadastro','Situação','Operação / motivo','Horário','Unidade da escala','Cliente / destino','Observação']];
-  const bloqV=[['Data','Placa','Unidade-base','Tipo de frota','Transportadora','Situação','Motivo / operação','Início indisponibilidade','Fim previsto','Unidade da escala','Horário','Observação']];
-  const bloqM=[['Data','Motorista','Unidade-base','Tipo de frota','Transportadora','Situação','Motivo / operação','Início indisponibilidade','Fim previsto','Unidade da escala','Horário','Observação']];
+  const mot=[['Data','Motorista','Unidade (escala ou base)','Tipo de frota','Transportadora','Cadastro','Situação','Operação / motivo','Horário','Unidade da escala','Cliente / destino','Observação']];
+  const veic=[['Data','Placa','Unidade (escala ou base)','Tipo de frota','Transportadora','Cadastro','Situação','Operação / motivo','Horário','Unidade da escala','Cliente / destino','Observação']];
+  const bloqV=[['Data','Placa','Unidade (escala ou base)','Tipo de frota','Transportadora','Situação','Motivo / operação','Início indisponibilidade','Fim previsto','Unidade da escala','Horário','Observação']];
+  const bloqM=[['Data','Motorista','Unidade (escala ou base)','Tipo de frota','Transportadora','Situação','Motivo / operação','Início indisponibilidade','Fim previsto','Unidade da escala','Horário','Observação']];
   const normal=x=>n(String(x||'').trim());
   const activeBlock=(b,d)=>b.ativa!==false&&b.data_inicio<=d&&(!b.data_fim||b.data_fim>=d);
   const labelMissing=r=>r.tipo_frota==='TERCEIRA'?'Sem acionamento/contrato registrado':'Sem uso';
-  const approved=rows.filter(r=>r.situacao==='VIGENTE');
+  const approved=approvedRows;
   for(const d of dateList){
    const day=approved.filter(r=>String(r.data||'').slice(0,10)===d);
    for(const v of allCentralVehicles){
     const assigned=day.filter(r=>normal(r.placa)===normal(v.placa));
     const block=centralVehicleBlocks.find(b=>b.veiculo_id===v.id&&activeBlock(b,d));
     const base=[toBR(d),v.placa||'',baseUnitName(v.unidade_base_id),v.tipo_frota||'',v.transportadora||''];
-    const situation=!v.ativo?'Cadastro inativo':block?'Indisponível / oficina':assigned.length?'Escalado':labelMissing(v);
+    const situation=assigned.length?'Escalado':!v.ativo?'Cadastro inativo':block?'Indisponível / oficina':labelMissing(v);
     if(assigned.length){for(const a of assigned){
-      veic.push([...base,v.ativo?'Ativo':'Inativo',situation,a.operacao||'',String(a.horario||'').slice(0,5),a.unidade||'',a.cliente||'',a.observacao||'']);
-      bloqV.push([...base,situation,a.operacao||'',block?toBR(block.data_inicio):'',block?toBR(block.data_fim):'',a.unidade||'',String(a.horario||'').slice(0,5),a.observacao||'']);
+      veic.push([...base.slice(0,2),a.unidade||base[2],...base.slice(3),v.ativo?'Ativo':'Inativo',situation,a.operacao||'',String(a.horario||'').slice(0,5),a.unidade||'',a.cliente||'',a.observacao||'']);
+      bloqV.push([...base.slice(0,2),a.unidade||base[2],...base.slice(3),situation,a.operacao||'',block?toBR(block.data_inicio):'',block?toBR(block.data_fim):'',a.unidade||'',String(a.horario||'').slice(0,5),a.observacao||'']);
     }}else{
       veic.push([...base,v.ativo?'Ativo':'Inativo',situation,block?.motivo||'','','', '',block?.observacao||'']);
       bloqV.push([...base,situation,block?.motivo||'',block?toBR(block.data_inicio):'',block?toBR(block.data_fim):'','','',block?.observacao||'']);
@@ -561,15 +569,21 @@ async function exportExcel(){
     const assigned=day.filter(r=>normal(r.motorista)===normal(m.nome));
     const block=centralDriverBlocks.find(b=>b.motorista_id===m.id&&activeBlock(b,d));
     const base=[toBR(d),m.nome||'',baseUnitName(m.unidade_base_id),m.tipo_frota||'',m.transportadora||''];
-    const situation=!m.ativo?'Cadastro inativo':block?'Indisponível':assigned.length?'Escalado':labelMissing(m);
+    const situation=assigned.length?'Escalado':!m.ativo?'Cadastro inativo':block?'Indisponível':labelMissing(m);
     if(assigned.length){for(const a of assigned){
-      mot.push([...base,m.ativo?'Ativo':'Inativo',situation,a.operacao||'',String(a.horario||'').slice(0,5),a.unidade||'',a.cliente||'',a.observacao||'']);
-      bloqM.push([...base,situation,a.operacao||'',block?toBR(block.data_inicio):'',block?toBR(block.data_fim):'',a.unidade||'',String(a.horario||'').slice(0,5),a.observacao||'']);
+      mot.push([...base.slice(0,2),a.unidade||base[2],...base.slice(3),m.ativo?'Ativo':'Inativo',situation,a.operacao||'',String(a.horario||'').slice(0,5),a.unidade||'',a.cliente||'',a.observacao||'']);
+      bloqM.push([...base.slice(0,2),a.unidade||base[2],...base.slice(3),situation,a.operacao||'',block?toBR(block.data_inicio):'',block?toBR(block.data_fim):'',a.unidade||'',String(a.horario||'').slice(0,5),a.observacao||'']);
     }}else{
       mot.push([...base,m.ativo?'Ativo':'Inativo',situation,block?.motivo||'','','','',block?.observacao||'']);
       bloqM.push([...base,situation,block?.motivo||'',block?toBR(block.data_inicio):'',block?toBR(block.data_fim):'','','',block?.observacao||'']);
     }
    }
+  }
+  // Validação cruzada das abas: toda alocação vigente deve estar presente nos quadros.
+  for(const a of approved){
+   const d=fmt(a.data),t=String(a.horario||'').slice(0,5);
+   if(a.motorista&&!mot.slice(1).some(x=>x[0]===d&&normal(x[1])===normal(a.motorista)&&x[6]==='Escalado'&&x[8]===t&&normal(x[9])===normal(a.unidade)))throw Error('Divergência na aba Motoristas: '+a.motorista+' '+d+' '+a.unidade);
+   if(a.placa&&!veic.slice(1).some(x=>x[0]===d&&normal(x[1])===normal(a.placa)&&x[6]==='Escalado'&&x[8]===t&&normal(x[9])===normal(a.unidade)))throw Error('Divergência na aba Veículos: '+a.placa+' '+d+' '+a.unidade);
   }
   const resumo=[['Relatório gerencial completo - Raça Biomassa',''],['Gerado em',new Date().toLocaleString('pt-BR')],['Escalas vigentes (alocações)',String(vig.length-1)],['Registros históricos (alocações)',String(hist.length-1)],['Motoristas cadastrados',String(allCentralDrivers.length)],['Veículos cadastrados',String(allCentralVehicles.length)],['Datas analisadas',String(dateList.length)],['Escopo','Todas as datas aprovadas e unidades; independente da data selecionada'],['Rascunhos','Não incluídos: somente escalas aprovadas'],['Situação sem uso','Sem alocação aprovada na data; não comprova inatividade operacional'],['Terceiros sem acionamento','Sem alocação aprovada; não comprova ausência de contrato'],['Indisponibilidades','Conforme registros de bloqueio ativos carregados no aplicativo']];
   const xml=`<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">${sheetXml('Resumo',resumo)}${sheetXml('Escalas Vigentes',vig)}${sheetXml('Historico Completo',hist)}${sheetXml('Motoristas',mot)}${sheetXml('Veiculos',veic)}${sheetXml('Indisp Veiculos',bloqV)}${sheetXml('Indisp Motoristas',bloqM)}</Workbook>`;
