@@ -549,7 +549,7 @@ async function exportExcel(){
   let vig=[['Data','Dia da semana','Unidade','Motorista','Tipo Frota Motorista','Transportadora Motorista','Placa','Tipo Frota Veículo','Transportadora Veículo','Operação','Tipo de Carga','Horário','Cliente / destino','Origem / floresta','Observação','Versão','Aprovada em']];
   let hist=[['Data','Dia da semana','Unidade','Versão','Situação','Motorista','Tipo Frota Motorista','Transportadora Motorista','Placa','Tipo Frota Veículo','Transportadora Veículo','Operação','Tipo de Carga','Horário','Cliente / destino','Origem / floresta','Observação','Aprovada em','Cancelada em','Motivo / rastreabilidade']];
   rows.forEach(r=>{
-   const vals=[fmt(r.data),wd(r.data),r.unidade||'',r.motorista||'',r.tipo_frota_motorista||'',r.transportadora_motorista||'',r.placa||'',r.tipo_frota_veiculo||'',r.transportadora_veiculo||'',r.operacao||'',r.tipo_carga||'',String(r.horario||'').slice(0,5),r.cliente||'',r.origem||'',r.observacao||''];
+   const vals=[fmt(r.data),wd(r.data),r.unidade||'',r.motorista||'',r.tipo_frota_motorista||'',r.transportadora_motorista||'',r.placa||'',r.tipo_frota_veiculo||'',r.transportadora_veiculo||'',r.operacao||'',r.tipo_carga||'',(r.horario ? String(r.horario).slice(0,5) : 'A definir'),r.cliente||'',r.origem||'',r.observacao||''];
    if(r.situacao==='VIGENTE')vig.push([...vals,r.versao||1,r.aprovada_em||'']);
    hist.push([vals[0],vals[1],vals[2],r.versao||1,r.situacao||'',...vals.slice(3),r.aprovada_em||'',r.cancelada_em||'',r.motivo_status||'']);
   });
