@@ -483,10 +483,12 @@ async function approve(){if(!requireManager())return;let d=selectedDate(),u=docu
  let {data:allVersions,error:ve}=await sb.from('escalas').select('id,versao').eq('data',d).eq('unidade_id',uid);if(ve){alert('Não foi possível consultar o histórico de versões: '+ve.message);return}
  let nextVersion=Math.max(0,...(allVersions||[]).map(x=>Number(x.versao)||1))+1;
  let previousId=existing?.length?existing[0].id:null,nowIso=new Date().toISOString();
- if(existing?.length){for(let ex of existing){let {error}=await sb.from('escalas').update({status:'cancelada',motivo_status:'Substituída por nova versão aprovada',cancelada_em:nowIso}).eq('id',ex.id);if(error){alert('Não foi possível preservar/substituir a escala anterior: '+error.message);return}}}
+ // Preserve the prior approved version until ALL new allocations have been saved.
  let {data:newEsc,error:se}=await sb.from('escalas').insert({data:d,unidade_id:uid,status:'aprovada',aprovada_em:nowIso,versao:nextVersion,substitui_escala_id:previousId}).select('id,versao').single();if(se){alert('Não foi possível aprovar a escala no banco central: '+se.message);return}
  let alloc=scale.map(r=>({escala_id:newEsc.id,necessidade_id:r.needId||null,motorista_id:centralDrivers.find(m=>n(m.nome)===n(r.name))?.id||null,veiculo_id:centralVehicles.find(v=>n(v.placa)===n(r.plate))?.id||null,operacao:r.operation,horario:r.time||null,cliente_id:centralClients.find(c=>c.unidade_id===uid&&n(c.nome)===n(r.client))?.id||null,origem_id:centralOrigins.find(o=>o.unidade_id===uid&&n(o.nome)===n(r.origin))?.id||null,observacao:r.obs||null,tipo_carga:r.cargo||'CAVACO',status:'aprovada'}));
- let {error:ae}=await sb.from('alocacoes_escala').insert(alloc);if(ae){await sb.from('escalas').update({status:'cancelada',motivo_status:'Aprovação incompleta: falha ao gravar alocações',cancelada_em:new Date().toISOString()}).eq('id',newEsc.id);alert('Não foi possível gravar as alocações: '+ae.message);return}
+ let {error:ae}=await sb.from('alocacoes_escala').insert(alloc);if(ae){await sb.from('escalas').update({status:'cancelada',motivo_status:'Aprovação incompleta: falha ao gravar alocações',cancelada_em:new Date().toISOString()}).eq('id',newEsc.id);alert('Não foi possível gravar as alocações: '+ae.message+'\nA escala aprovada anterior foi preservada.');return}
+ // Only now retire previous approvals, after successfully inserting every allocation.
+ if(existing?.length){for(let ex of existing){let {error:retireError}=await sb.from('escalas').update({status:'cancelada',motivo_status:'Substituída por nova versão aprovada',cancelada_em:nowIso}).eq('id',ex.id);if(retireError){alert('Nova versão gravada, mas houve falha ao encerrar a versão anterior. Solicite conciliação antes de exportar: '+retireError.message);return}}}
  let needIds=[...new Set(scale.map(r=>r.needId).filter(Boolean))];if(needIds.length)await sb.from('necessidades').update({status:'aprovada'}).in('id',needIds);
  await loadCentralHistory();document.getElementById('msg').textContent=`Escala ${fmt(d)} • versão ${newEsc.versao} aprovada e salva no banco central. Ela passa a ser a referência D-1 em qualquer aparelho.`;buildText();info();renderMemory()
 }
@@ -525,6 +527,20 @@ async function exportExcel(){
   // O relatório oficial tem como fonte exclusiva as alocações de escalas aprovadas.
   // Conciliação preventiva: interrompe a exportação se o retorno do RPC não for coerente.
   const approvedRows=rows.filter(r=>r.situacao==='VIGENTE');
+  // Guard against orphaned historical schedules after a failed replacement approval.
+  const historicGroups=new Map();
+  for(const r of rows){
+   const key=String(r.data||'').slice(0,10)+'|'+String(r.unidade||'');
+   if(!historicGroups.has(key))historicGroups.set(key,[]);
+   historicGroups.get(key).push(r);
+  }
+  const missing=[];
+  for(const [key,group] of historicGroups){
+   if(!group.some(r=>r.situacao==='VIGENTE') && group.some(r=>r.situacao==='HISTÓRICA' && !String(r.motivo_status||'').includes('Aprovação incompleta'))){
+    missing.push(key.replace('|',' — '));
+   }
+  }
+  if(missing.length)throw Error('RELATÓRIO BLOQUEADO: há datas com escalas anteriormente aprovadas, mas sem versão vigente: '+missing.join('; ')+'. Uma tentativa de aprovação posterior falhou e cancelou a escala anterior. Regularize a aprovação no banco central antes de exportar; nenhuma data será omitida.');
   const identity=x=>n(String(x||'').trim());
   for(const r of approvedRows){
    if(r.motorista&&!allCentralDrivers.some(m=>identity(m.nome)===identity(r.motorista)))throw Error('Motorista da escala aprovada não localizado no cadastro: '+r.motorista+' em '+r.data);
