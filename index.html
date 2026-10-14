@@ -105,7 +105,7 @@ async function applySession(session){
  document.getElementById('userInfo').textContent=(profile.nome||session.user.email)+' • '+(profile.perfil==='admin'?'Administrador':'Gestor');
  document.querySelectorAll('.adminOnly').forEach(el=>el.classList.toggle('hiddenByRole',profile.perfil!=='admin'));
   document.querySelectorAll('.managerOnly').forEach(el=>el.classList.toggle('hiddenByRole',!canManage()));
- try{await loadCentralResources();await v16CloudLoad()}catch(e){console.error(e);msg.textContent='Login realizado, mas não foi possível carregar os cadastros do banco central: '+e.message}
+ try{await loadCentralResources();await v16CloudLoad();await refreshApprovalVisual()}catch(e){console.error(e);msg.textContent='Login realizado, mas não foi possível carregar os cadastros do banco central: '+e.message}
  return true;
 }
 async function loginSupabase(){
@@ -221,7 +221,7 @@ function v16DraftStatus(message,error=false){const e=document.getElementById('v1
 function v16RestoreDraft(){const key=v16DraftKey();if(!key)return false;let raw;try{raw=localStorage.getItem(key)}catch(e){v16DraftStatus('Não foi possível ler o rascunho: '+e.message,true);return false}if(!raw)return false;try{const d=JSON.parse(raw);if(d.schema!==2||d.date!==selectedDate()||d.unit!==document.getElementById('unit').value||!Array.isArray(d.needs)||!Array.isArray(d.scale))throw Error('formato inválido');needs=d.needs;scale=d.scale;v16Current=Math.max(0,Math.min(Number(d.current)||0,Math.max(0,scale.length-1)));v16Overview=!!d.overview;renderNeeds();renderScale();v16DraftStatus('Rascunho recuperado deste navegador');return true}catch(e){v16DraftStatus('Rascunho não recuperado: '+e.message,true);return false}}
 function v16SetDraftUser(id){if(!id||v16DraftUser===id)return;v16DraftUser=id;const last=localStorage.getItem(V16_DRAFT_PREFIX+'last_'+encodeURIComponent(id));if(last){try{const obj=JSON.parse(last);if(obj.date)document.getElementById('date').value=obj.date;if(obj.unit&&[...document.getElementById('unit').options].some(o=>o.value===obj.unit))document.getElementById('unit').value=obj.unit}catch(e){}}if(!v16RestoreDraft()){needs=[];scale=[];v16Current=0;v16Overview=false;if(canManage())addNeed();renderScale();v16DraftStatus('Novo rascunho — salvamento automático neste navegador')}}
 function v16RememberSelection(){if(!v16DraftUser)return;try{localStorage.setItem(V16_DRAFT_PREFIX+'last_'+encodeURIComponent(v16DraftUser),JSON.stringify({date:selectedDate(),unit:document.getElementById('unit').value}))}catch(e){}}
-function v16SwitchDraft(){if(approvalBusy){alert('Aguarde a confirmação da aprovação.');return}needs=[];scale=[];v16Current=0;v16Overview=false;if(!v16RestoreDraft()){if(canManage())addNeed();renderScale();v16DraftStatus('Novo rascunho — salvamento automático neste navegador')}v16RememberSelection();v16CloudLoad()}
+function v16SwitchDraft(){if(approvalBusy){alert('Aguarde a confirmação da aprovação.');return}needs=[];scale=[];v16Current=0;v16Overview=false;if(!v16RestoreDraft()){if(canManage())addNeed();renderScale();v16DraftStatus('Novo rascunho — salvamento automático neste navegador')}v16RememberSelection();v16CloudLoad();refreshApprovalVisual()}
 function v16DiscardDraft(){alert("Para proteger o rascunho compartilhado, descarte remoto está desabilitado nesta versão de testes.");return;
 if(!confirm('Descartar somente o rascunho desta data e unidade neste navegador? Os cadastros e escalas aprovadas não serão alterados.'))return;const key=v16DraftKey();if(key)localStorage.removeItem(key);needs=[];scale=[];v16Current=0;v16Overview=false;addNeed();renderScale();v16SaveDraft()}
 
@@ -482,13 +482,25 @@ function approvalVisual(state,message){
  btn.disabled=state==='busy';
  if(message&&msg)msg.textContent=message;
 }
+let approvalStatusRequest=0;
 async function refreshApprovalVisual(){
  if(approvalBusy)return;
- const d=selectedDate(),uid=centralUnitId(document.getElementById('unit').value);
- approvalVisual('idle');if(!d||!uid)return;
- try{const {data,error}=await sb.from('escalas').select('id').eq('data',d).eq('unidade_id',uid).eq('status','aprovada').order('id',{ascending:false}).limit(1);
- if(error)throw error;if(data?.length)approvalVisual('ok');}catch(e){console.warn('STATUS_APROVACAO_INDISPONIVEL',e)}
+ const request=++approvalStatusRequest;
+ const d=selectedDate(),unit=document.getElementById('unit').value,uid=centralUnitId(unit);
+ approvalVisual('idle');if(!d||!uid||!currentProfile)return;
+ try{
+  const {data,error}=await sb.from('escalas').select('id').eq('data',d).eq('unidade_id',uid).eq('status','aprovada').order('id',{ascending:false}).limit(1);
+  if(error)throw error;
+  if(!data?.length)return;
+  const {count,error:allocError}=await sb.from('alocacoes_escala').select('id',{count:'exact',head:true}).eq('escala_id',data[0].id);
+  if(allocError)throw allocError;
+  if(!approvalBusy&&request===approvalStatusRequest&&selectedDate()===d&&document.getElementById('unit').value===unit){
+   if(count>0)approvalVisual('ok');else approvalVisual('idle','ATENÇÃO: registro aprovado sem alocações. Solicite conferência.');
+  }
+ }catch(e){console.warn('STATUS_APROVACAO_INDISPONIVEL',e)}
 }
+document.getElementById('date')?.addEventListener('change',()=>{if(!approvalBusy)refreshApprovalVisual()});
+document.getElementById('unit')?.addEventListener('change',()=>{if(!approvalBusy)refreshApprovalVisual()});
 async function approve(){
  if(approvalBusy)return;
  const startDate=selectedDate(),startUnit=document.getElementById('unit').value,initialRows=JSON.stringify(scale);
@@ -539,7 +551,7 @@ function isoLocal(d){let y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'
 function nextOperationalDay(){let d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+1);while(d.getDay()===0||d.getDay()===6)d.setDate(d.getDate()+1);return isoLocal(d)}
 function nextDow(from,dow){let d=new Date(from);d.setHours(12,0,0,0);do{d.setDate(d.getDate()+1)}while(d.getDay()!==dow);return isoLocal(d)}
 function renderFridayPlan(){let box=document.getElementById('fridayPlan');if(!box)return;let today=new Date();today.setHours(12,0,0,0);let isPlanningFriday=today.getDay()===5;box.classList.toggle('hidden',!isPlanningFriday);if(!isPlanningFriday)return;let sat=nextDow(today,6),mon=nextDow(today,1),bm=document.getElementById('btnMonday'),bs=document.getElementById('btnSaturday');if(bm&&bs){bm.className='primary';bs.className='secondary';bm.onclick=()=>setPlanDate(mon);bs.onclick=()=>setPlanDate(sat)}}
-function setPlanDate(iso){if(approvalBusy)return;document.getElementById('date').value=iso;v16SwitchDraft();info();document.getElementById('blockStart').value=iso;document.getElementById('driverBlockStart').value=iso}
+function setPlanDate(iso){if(approvalBusy)return;document.getElementById('date').value=iso;v16SwitchDraft();refreshApprovalVisual();info();document.getElementById('blockStart').value=iso;document.getElementById('driverBlockStart').value=iso}
 function planSaturday(){let d=new Date(selectedDate()+'T12:00');setPlanDate(nextDow(d,6))}
 function planMonday(){let d=new Date(selectedDate()+'T12:00');setPlanDate(nextDow(d,1))}
 function xmlEsc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
