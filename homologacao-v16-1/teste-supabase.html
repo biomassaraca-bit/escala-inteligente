@@ -1,0 +1,49 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Raça Biomassa | Homologação Supabase V16.1</title><style>*{box-sizing:border-box}body{margin:0;background:#eef3f0;color:#163d2d;font:15px system-ui,Arial}main{max-width:800px;margin:35px auto;background:#fff;padding:28px;border-radius:16px;box-shadow:0 8px 30px #102b2018}h1{font-size:25px;margin:0 0 8px}.notice{background:#fff1c7;border-left:5px solid #b07d0b;padding:15px;border-radius:6px;margin:18px 0}.field{margin:12px 0}label{display:block;font-weight:650;margin-bottom:6px}input{width:100%;padding:12px;border:1px solid #bccdc4;border-radius:8px;font-size:15px}button{background:#176343;color:white;border:0;border-radius:8px;padding:13px 18px;font-weight:700;cursor:pointer;margin:8px 8px 8px 0}button:disabled{opacity:.55;cursor:wait}.muted{color:#5a7266;font-size:13px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#0f2820;color:#d9ffeb;padding:18px;border-radius:10px;min-height:100px}.bad{color:#b42318}.good{color:#14743f}</style></head><body><main><h1>Raça Biomassa — Teste real V16.1</h1><p>Homologação de autenticação, gravação e conferência no Supabase de testes.</p><div class="notice"><b>AMBIENTE ISOLADO — NÃO É O SISTEMA OPERACIONAL.</b><br>Este teste grava 1 escala fictícia e 2 alocações fictícias somente no projeto <b>fqcuenqtalhwanymsbgg</b>. Não usa dados reais de motoristas, placas ou clientes. O teste <b>não</b> comprova ainda a rotina original de aprovação da V16.1.</div><div class="field"><label for="email">E-mail do usuário de teste</label><input id="email" type="email" autocomplete="username"></div><div class="field"><label for="password">Senha do usuário de teste</label><input id="password" type="password" autocomplete="current-password"></div><button id="go" onclick="run()">Executar teste de gravação e leitura</button><p class="muted">Senha usada apenas nesta execução; não é salva na página. Registros de teste permanecem no banco de homologação.</p><pre id="log" aria-live="polite">Aguardando execução.</pre></main><script>
+const URL_BASE='https://fqcuenqtalhwanymsbgg.supabase.co';
+const KEY='sb_publishable_QMhGN3bDq2kCkThOazwL9w_TDE0hq_L';
+const out=document.getElementById('log');
+function log(s){out.textContent+='\n'+s}
+async function api(path,method,token,body,extra={}){
+ const headers={'apikey':KEY,'Authorization':'Bearer '+token,'Content-Type':'application/json',...extra};
+ const r=await fetch(URL_BASE+path,{method,headers,body:body===undefined?undefined:JSON.stringify(body),cache:'no-store'});
+ const txt=await r.text();let data;try{data=txt?JSON.parse(txt):null}catch{data=txt}
+ if(!r.ok)throw Error(method+' '+path.split('?')[0]+' — HTTP '+r.status+' — '+JSON.stringify(data).slice(0,400));
+ return data;
+}
+async function run(){
+ const btn=document.getElementById('go');const email=document.getElementById('email').value.trim(),password=document.getElementById('password').value;
+ if(!email||!password){alert('Informe e-mail e senha do usuário de teste.');return}
+ btn.disabled=true;out.textContent='Iniciando autenticação no banco de HOMOLOGAÇÃO...';
+ let id=null,stage='autenticação';
+ try{
+  const session=await api('/auth/v1/token?grant_type=password','POST',KEY,{email,password});
+  if(!session?.access_token)throw Error('Não foi recebido token de autenticação.');
+  const token=session.access_token;
+  document.getElementById('password').value='';
+  log('✓ Autenticação realizada.');
+  stage='gravação da escala';
+  const date='2026-10-14';
+  const created=await api('/rest/v1/homologacao_escalas','POST',token,[{data:date,unidade_id:1,status:'aprovada'}],{'Prefer':'return=representation'});
+  if(!Array.isArray(created)||created.length!==1||!created[0].id)throw Error('Não foi possível confirmar o ID da escala inserida.');
+  id=created[0].id;log('✓ Escala fictícia criada. ID: '+id);
+  stage='gravação das alocações';
+  const wanted=[{escala_id:id,motorista_id:101,veiculo_id:201,cliente_id:301,horario:'07:00:00'},{escala_id:id,motorista_id:102,veiculo_id:202,cliente_id:302,horario:'08:00:00'}];
+  await api('/rest/v1/homologacao_alocacoes','POST',token,wanted,{'Prefer':'return=representation'});
+  log('✓ Requisição de inserção das 2 alocações concluída.');
+  stage='releitura da escala';
+  const h=await api('/rest/v1/homologacao_escalas?id=eq.'+encodeURIComponent(id)+'&select=id,data,unidade_id,status','GET',token);
+  stage='releitura das alocações';
+  const a=await api('/rest/v1/homologacao_alocacoes?escala_id=eq.'+encodeURIComponent(id)+'&select=escala_id,motorista_id,veiculo_id,cliente_id,horario','GET',token);
+  const ok=Array.isArray(h)&&h.length===1&&h[0].data===date&&h[0].unidade_id===1&&h[0].status==='aprovada'&&Array.isArray(a)&&a.length===2&&wanted.every(w=>a.some(v=>v.escala_id===w.escala_id&&v.motorista_id===w.motorista_id&&v.veiculo_id===w.veiculo_id&&v.cliente_id===w.cliente_id&&String(v.horario).slice(0,5)===w.horario.slice(0,5)));
+  if(!ok)throw Error('Conferência divergente: os registros lidos não correspondem aos 2 registros esperados.');
+  log('✓ Escala relida e validada.');
+  log('✓ Duas alocações relidas e validadas, incluindo motorista, placa, cliente e horário.');
+  log('\nRESULTADO: APROVADO — gravação e releitura via API autenticada do Supabase de homologação.');
+  log('Observação: este teste não verifica atomicidade nem a rotina de aprovação do aplicativo operacional.');
+ }catch(e){
+  log('\nRESULTADO: FALHOU na etapa '+stage+'.');
+  log(String(e.message||e));
+  if(id!==null)log('ATENÇÃO: a escala de teste ID '+id+' pode ter ficado parcialmente gravada. Não trate como aprovação.');
+ }finally{btn.disabled=false}
+}
+</script></body></html>
