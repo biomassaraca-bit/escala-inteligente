@@ -526,7 +526,7 @@ async function approveCore(){if(!requireManager())return false;let d=selectedDat
  // Preserve the prior approved version until ALL new allocations have been saved.
  let {data:newEsc,error:se}=await sb.from('escalas').insert({data:d,unidade_id:uid,status:'aprovada',aprovada_em:nowIso,versao:nextVersion,substitui_escala_id:previousId}).select('id,versao').single();if(se){alert('Não foi possível aprovar a escala no banco central: '+se.message);return}
  let alloc=rows.map(r=>({escala_id:newEsc.id,necessidade_id:r.needId||null,motorista_id:centralDrivers.find(m=>n(m.nome)===n(r.name))?.id||null,veiculo_id:centralVehicles.find(v=>n(v.placa)===n(r.plate))?.id||null,operacao:r.operation,horario:r.time||null,cliente_id:centralClients.find(c=>c.unidade_id===uid&&n(c.nome)===n(r.client))?.id||null,origem_id:centralOrigins.find(o=>o.unidade_id===uid&&n(o.nome)===n(r.origin))?.id||null,observacao:r.obs||null,tipo_carga:r.cargo||'CAVACO',status:'aprovada'}));
- let {error:ae}=await sb.from('alocacoes_escala').insert(alloc);if(ae){await sb.from('escalas').update({status:'cancelada',motivo_status:'Aprovação incompleta: falha ao gravar alocações',cancelada_em:new Date().toISOString()}).eq('id',newEsc.id);alert('Não foi possível gravar as alocações: '+ae.message+'\nA escala aprovada anterior foi preservada.');return}
+ let {error:ae}=await sb.from('alocacoes_escala').insert(alloc);if(ae){const {error:cancelError}=await sb.from('escalas').update({status:'cancelada',motivo_status:'Aprovação incompleta: falha ao gravar alocações',cancelada_em:new Date().toISOString()}).eq('id',newEsc.id);if(cancelError)alert('ALERTA CRÍTICO: falha nas alocações e no cancelamento da escala '+newEsc.id+'. Conferir no Supabase: '+ae.message);else alert('Não foi possível gravar as alocações: '+ae.message+'\nA escala anterior foi preservada.');return false}
  // V16.1 TESTE: confirmação obrigatória de persistência antes de encerrar a versão anterior.
  let {data:confirmedScale,error:verifyScaleError}=await sb.from('escalas').select('id,data,unidade_id,status').eq('id',newEsc.id).maybeSingle();
  let {data:confirmedAlloc,error:verifyAllocError}=await sb.from('alocacoes_escala').select('id,escala_id,motorista_id,veiculo_id,cliente_id,horario').eq('escala_id',newEsc.id);
@@ -537,8 +537,14 @@ async function approveCore(){if(!requireManager())return false;let d=selectedDat
  }
  if(!verified){
   console.error('AUDITORIA_APROVACAO_FALHOU',{data:d,unidade_id:uid,escala_id:newEsc.id,esperadas:alloc.length,encontradas:confirmedAlloc?.length,verifyScaleError,verifyAllocError});
-  alert('ATENÇÃO: não foi possível confirmar integralmente a gravação da escala '+newEsc.id+'. A versão anterior foi preservada. NÃO considere esta escala aprovada; solicite conferência no Supabase.');
-  return;
+  const {error:cancelError}=await sb.from('escalas').update({status:'cancelada',motivo_status:'Auditoria de aprovação não confirmou todas as alocações',cancelada_em:new Date().toISOString()}).eq('id',newEsc.id);
+  if(cancelError){
+   console.error('CANCELAMENTO_APOS_AUDITORIA_FALHOU',{escala_id:newEsc.id,error:cancelError});
+   alert('ALERTA CRÍTICO: escala '+newEsc.id+' não foi confirmada e o cancelamento também falhou. NÃO utilize esta escala. Verifique o registro no Supabase. A versão anterior não foi cancelada.');
+  }else{
+   alert('Aprovação NÃO confirmada. A versão incompleta '+newEsc.id+' foi cancelada e a escala anterior foi preservada. Revise antes de tentar novamente.');
+  }
+  return false;
  }
  // Only now retire previous approvals, after successfully inserting every allocation.
  if(existing?.length){for(let ex of existing){let {error:retireError}=await sb.from('escalas').update({status:'cancelada',motivo_status:'Substituída por nova versão aprovada',cancelada_em:nowIso}).eq('id',ex.id);if(retireError){alert('Nova versão gravada, mas houve falha ao encerrar a versão anterior. Solicite conciliação antes de exportar: '+retireError.message);return}}}
