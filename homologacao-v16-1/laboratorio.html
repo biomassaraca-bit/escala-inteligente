@@ -1,0 +1,23 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Raça Biomassa | Testes de aprovação V16.1</title><style>body{font-family:Arial,sans-serif;background:#edf3ef;color:#173c2b;max-width:850px;margin:35px auto;padding:16px}main{background:white;border-radius:16px;padding:26px}h1{font-size:24px}button{background:#145536;color:white;border:0;border-radius:8px;padding:12px 20px;font-weight:bold;cursor:pointer}li{padding:10px;border-bottom:1px solid #ddd}.ok{color:#13793e}.fail{color:#a32323}.note{background:#fff0bf;padding:14px;border-radius:8px}</style></head><body><main><h1>Raça Biomassa — Laboratório de aprovação V16.1</h1><p class="note"><b>TESTE ISOLADO EM MEMÓRIA.</b> Esta página não conecta ao Supabase e não altera nenhuma escala real. Ela testa a regra de conferência, mas não comprova o funcionamento da rede, permissões ou transações do banco.</p><button onclick="run()">Executar 6 cenários</button><ol id="results"></ol><p id="summary"></p></main><script>
+function verifyApproval(expected,head,rows,readError){
+ if(readError||!head||head.data!==expected.data||head.unidade_id!==expected.unidade_id||head.status!=='aprovada'||!Array.isArray(rows)||rows.length!==expected.rows.length)return false;
+ let remaining=[...rows];
+ return expected.rows.every(row=>{let i=remaining.findIndex(saved=>saved.escala_id===head.id&&saved.motorista_id===row.motorista_id&&saved.veiculo_id===row.veiculo_id&&saved.cliente_id===row.cliente_id&&String(saved.horario||'').slice(0,5)===String(row.horario||'').slice(0,5));if(i<0)return false;remaining.splice(i,1);return true});
+}
+function run(){
+ const expected={data:'2026-10-14',unidade_id:1,rows:[{motorista_id:11,veiculo_id:21,cliente_id:31,horario:'07:00'},{motorista_id:12,veiculo_id:22,cliente_id:32,horario:'08:00'}]};
+ const head={id:99,data:expected.data,unidade_id:1,status:'aprovada'};
+ const rows=expected.rows.map(r=>({...r,escala_id:99}));
+ const tests=[
+ ['Gravação completa e correta',true,head,rows,false],
+ ['Uma alocação ausente',false,head,rows.slice(0,1),false],
+ ['Placa divergente',false,head,[rows[0],{...rows[1],veiculo_id:999}],false],
+ ['Unidade divergente',false,{...head,unidade_id:2},rows,false],
+ ['Erro ao consultar o banco',false,head,rows,true],
+ ['Alocação duplicada substituindo outra',false,head,[rows[0],rows[0]],false]
+ ];
+ let count=0;document.getElementById('results').innerHTML=tests.map(([name,want,h,r,e])=>{let got=verifyApproval(expected,h,r,e),ok=got===want;if(ok)count++;return '<li class="'+(ok?'ok':'fail')+'">'+(ok?'APROVADO':'FALHOU')+' — '+name+' (retorno: '+(got?'confirma':'bloqueia')+')</li>'}).join('');
+ document.getElementById('summary').textContent='Resultado: '+count+'/'+tests.length+' cenários passaram.';
+}
+run();
+</script></body></html>
