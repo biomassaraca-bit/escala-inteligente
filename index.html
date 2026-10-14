@@ -53,7 +53,7 @@
 <section class="card"><div class="title">5. ESCALA SUGERIDA</div><div id="v16DraftStatus" class="notice" role="status">Rascunho local: aguardando login</div><div class="actions managerOnly"><button class="secondary" type="button" onclick="v16DownloadBackup()">Baixar cópia do rascunho</button><button class="secondary" type="button" onclick="document.getElementById('v16BackupFile').click()">Importar cópia</button><input id="v16BackupFile" type="file" accept="application/json,.json" class="hidden" onchange="v16ImportBackup(this)"><button id="v16ResolveBtn" class="primary hidden" type="button" onclick="v16ResolveConflict()">Conferir e sincronizar conflito</button></div><div id="scale"><div class="small">Cadastre as necessidades e clique em “Gerar escala inteligente”.</div></div>
 <div class="actions"><button class="secondary managerOnly" onclick="addManual()">+ Adicionar manualmente</button><button class="danger managerOnly" type="button" onclick="v16DiscardDraft()">Descartar rascunho local</button></div><p class="small">Rascunhos sincronizados com o Supabase conforme conexão e permissões do usuário.</p></section>
 
-<section class="card"><div class="title">6. APROVAÇÃO E WHATSAPP</div><div class="actions"><button class="primary managerOnly" onclick="approve()">Aprovar escala</button><button class="secondary" onclick="buildText()">Gerar texto</button><button class="secondary" onclick="shareText()">Compartilhar</button><button id="btnExportExcel" class="secondary adminOnly" onclick="exportExcel()">Relatório gerencial completo / Excel</button></div><div id="msg" class="small" style="margin:9px 0"></div><div id="output" class="output">A escala será formatada aqui.</div></section>
+<section class="card"><div class="title">6. APROVAÇÃO E WHATSAPP</div><div class="actions"><button id="btnApproveScale" class="managerOnly" type="button" onclick="approve()" style="background:#b4232d;color:white;font-weight:700">🔴 Aprovar escala</button><button class="secondary" onclick="buildText()">Gerar texto</button><button class="secondary" onclick="shareText()">Compartilhar</button><button id="btnExportExcel" class="secondary adminOnly" onclick="exportExcel()">Relatório gerencial completo / Excel</button></div><div id="msg" class="small" style="margin:9px 0"></div><div id="output" class="output">A escala será formatada aqui.</div></section>
 <section class="card managerOnly"><div class="title">7. CADASTROS OPERACIONAIS</div><p class="small">Motoristas e veículos são recursos globais da Raça Biomassa. A unidade-base define apenas a prioridade da sugestão automática. Classifique cada recurso como Frota Própria ou Frota Terceira.</p>
 <div class="needNo">NOVO MOTORISTA</div><div class="grid">
 <div class="field"><label>Novo motorista</label><input id="newDriverName" placeholder="Nome completo"></div>
@@ -474,7 +474,35 @@ function validateScale(){
  }
  return true;
 }
-async function approve(){if(!requireManager())return;let d=selectedDate(),u=document.getElementById('unit').value,uid=centralUnitId(u);if(!d||!scale.length){alert('Informe a data e gere a escala.');return}if(!validateScale())return;
+let approvalBusy=false;
+function approvalVisual(state,message){
+ const btn=document.getElementById('btnApproveScale'),msg=document.getElementById('msg');if(!btn)return;
+ btn.style.background=state==='ok'?'#167347':state==='busy'?'#c27a08':'#b4232d';
+ btn.textContent=state==='ok'?'✓ Escala aprovada e confirmada':state==='busy'?'⏳ Salvando e conferindo...':'🔴 Aprovar escala';
+ btn.disabled=state==='busy';
+ if(message&&msg)msg.textContent=message;
+}
+async function refreshApprovalVisual(){
+ if(approvalBusy)return;
+ const d=selectedDate(),uid=centralUnitId(document.getElementById('unit').value);
+ approvalVisual('idle');if(!d||!uid)return;
+ try{const {data,error}=await sb.from('escalas').select('id').eq('data',d).eq('unidade_id',uid).eq('status','aprovada').order('id',{ascending:false}).limit(1);
+ if(error)throw error;if(data?.length)approvalVisual('ok');}catch(e){console.warn('STATUS_APROVACAO_INDISPONIVEL',e)}
+}
+async function approve(){
+ if(approvalBusy)return;
+ const startDate=selectedDate(),startUnit=document.getElementById('unit').value,initialRows=JSON.stringify(scale);
+ approvalBusy=true;approvalVisual('busy','Salvando escala e conferindo no banco central. Aguarde...');
+ const unitEl=document.getElementById('unit'),dateEl=document.getElementById('date');
+ if(unitEl)unitEl.disabled=true;if(dateEl)dateEl.disabled=true;
+ try{await approveCore();}catch(e){console.error('APROVACAO_ERRO',e);alert('Aprovação não confirmada: '+e.message)}
+ finally{
+ approvalBusy=false;if(unitEl)unitEl.disabled=false;if(dateEl)dateEl.disabled=false;
+ if(selectedDate()!==startDate||document.getElementById('unit').value!==startUnit||JSON.stringify(scale)!==initialRows)console.warn('CONTEXTO_ALTERADO_DURANTE_APROVACAO');
+ await refreshApprovalVisual();
+ }
+}
+async function approveCore(){if(!requireManager())return;let d=selectedDate(),u=document.getElementById('unit').value,uid=centralUnitId(u);if(!d||!scale.length){alert('Informe a data e gere a escala.');return}if(!validateScale())return;
  // Conflito global: impede o mesmo motorista/veículo em outra unidade no mesmo horário/data.
  let {data:dayScales,error:ce}=await sb.from('escalas').select('id,unidade_id').eq('data',d).eq('status','aprovada');if(ce){alert('Não foi possível validar conflitos centrais: '+ce.message);return}
  let other=(dayScales||[]).filter(e=>e.unidade_id!==uid),otherIds=other.map(e=>e.id);if(otherIds.length){let {data:oa,error:oe}=await sb.from('alocacoes_escala').select('motorista_id,veiculo_id,horario').in('escala_id',otherIds);if(oe){alert('Não foi possível validar alocações de outras unidades: '+oe.message);return}for(let r of scale){let mid=centralDrivers.find(m=>n(m.nome)===n(r.name))?.id,vid=centralVehicles.find(v=>n(v.placa)===n(r.plate))?.id,t=r.time||null;let hit=(oa||[]).find(a=>(mid&&a.motorista_id===mid||vid&&a.veiculo_id===vid)&&((!t&&!a.horario)||(t&&String(a.horario||'').slice(0,5)===t)));if(hit){alert(`${r.name}${r.plate?' / '+r.plate:''} já possui alocação em outra unidade no mesmo horário. Revise antes de aprovar.`);return}}}
@@ -502,7 +530,7 @@ async function approve(){if(!requireManager())return;let d=selectedDate(),u=docu
  }
  // Only now retire previous approvals, after successfully inserting every allocation.
  if(existing?.length){for(let ex of existing){let {error:retireError}=await sb.from('escalas').update({status:'cancelada',motivo_status:'Substituída por nova versão aprovada',cancelada_em:nowIso}).eq('id',ex.id);if(retireError){alert('Nova versão gravada, mas houve falha ao encerrar a versão anterior. Solicite conciliação antes de exportar: '+retireError.message);return}}}
- let needIds=[...new Set(scale.map(r=>r.needId).filter(Boolean))];if(needIds.length)await sb.from('necessidades').update({status:'aprovada'}).in('id',needIds);
+ let needIds=[...new Set(alloc.map(r=>r.necessidade_id).filter(Boolean))];if(needIds.length)await sb.from('necessidades').update({status:'aprovada'}).in('id',needIds);
  try{await loadCentralHistory()}catch(historyError){console.error('HISTORICO_NAO_ATUALIZADO',historyError);alert('Escala '+newEsc.id+' gravada e conferida no Supabase, mas o histórico não atualizou. Recarregue o aplicativo.');return}document.getElementById('msg').textContent=`Escala ${fmt(d)} • versão ${newEsc.versao} aprovada e salva no banco central. Ela passa a ser a referência D-1 em qualquer aparelho.`;buildText();info();renderMemory()
 }
 async function shareText(){let t=buildText();if(navigator.share){try{await navigator.share({title:'Escala Raça Biomassa',text:t})}catch(e){}}else{await navigator.clipboard.writeText(t);alert('Texto copiado. Abra o WhatsApp e cole no grupo.')}}
