@@ -47,7 +47,7 @@
 <div class="notice">Exemplo: Predilecta + FASA + Cicopal + Pif Paf podem ser cadastrados juntos. Motoristas e veículos podem ser reutilizados no mesmo dia em horários diferentes. O sistema bloqueia conflito no mesmo horário e sinaliza reutilizações muito próximas para validação.</div>
 <div id="needs"></div><div class="actions"><button class="secondary" onclick="addNeed()">+ Adicionar cliente / necessidade</button><button class="primary" onclick="generate()">Gerar escala inteligente</button></div></section>
 
-<section class="card"><div class="memoryHead"><div class="title" style="margin:0">MEMÓRIA D-1</div><button class="secondary" onclick="toggleMemory()">Ver / ocultar</button></div>
+<section class="card"><div class="memoryHead"><div class="title" style="margin:0">MEMÓRIA DA ÚLTIMA ESCALA APROVADA</div><button class="secondary" onclick="toggleMemory()">Ver / ocultar</button></div>
 <div id="memory" class="hidden"></div></section>
 
 <section class="card"><div class="title">5. ESCALA SUGERIDA</div><div id="v16DraftStatus" class="notice" role="status">Rascunho local: aguardando login</div><div class="actions managerOnly"><button class="secondary" type="button" onclick="v16DownloadBackup()">Baixar cópia do rascunho</button><button class="secondary" type="button" onclick="document.getElementById('v16BackupFile').click()">Importar cópia</button><input id="v16BackupFile" type="file" accept="application/json,.json" class="hidden" onchange="v16ImportBackup(this)"><button id="v16ResolveBtn" class="primary hidden" type="button" onclick="v16ResolveConflict()">Conferir e sincronizar conflito</button></div><div id="scale"><div class="small">Cadastre as necessidades e clique em “Gerar escala inteligente”.</div></div>
@@ -328,16 +328,31 @@ function addMinutes(h,m){
 }
 async function generate(){
  if(!requireManager())return;
-  let unit=document.getElementById('unit').value,p=pool(unit); // V16: nunca zerar alocações existentes
-  needs.forEach(req=>{req._v16id=req._v16id||('N'+Date.now()+'_'+Math.random().toString(36).slice(2));const already=scale.filter(r=>r._v16id===req._v16id).length;for(let q=already;q<Math.max(1,Number(req.qty)||1);q++){
-    let slotTime=addMinutes(req.time,q*(req.interval||0));
-    let candidates=p.filter(x=>!n(x.r[2]).includes('manuten')&&!isDriverBlocked(x.r[0])&&!resourceConflictAt('driver',x.r[0],slotTime));
-    if(!['Folga','Serviços Base','Manutenção'].includes(req.operation)) candidates=candidates.filter(x=>!!(x.r[1]||'').trim()&&!isVehicleBlocked(x.r[1])&&!resourceConflictAt('vehicle',x.r[1],slotTime));
-    candidates.sort((a,b)=>resourceUseCount('driver',a.r[0])-resourceUseCount('driver',b.r[0])||((a.home?0:15)+a.sc.v)-((b.home?0:15)+b.sc.v)||a.r[0].localeCompare(b.r[0]));
-    let cand=candidates[0];
-    if(!cand){scale.push({_v16id:req._v16id,name:'PENDENTE DE MOTORISTA',plate:'',operation:req.operation,cargo:req.cargo||'CAVACO',time:slotTime,client:req.client,origin:req.origin,obs:req.obs,flag:'Requer definição manual',cls:'red',prev:'sem candidato elegível'});continue;}
-    scale.push({_v16id:req._v16id,name:cand.r[0],plate:v16AvailablePreferredPlate(cand.r[0],slotTime)||cand.r[1]||'',operation:req.operation,cargo:req.cargo||'CAVACO',time:slotTime,client:req.client,origin:req.origin,obs:req.obs,flag:cand.sc.label,cls:cand.sc.cls,prev:cand.r[2]});
-  }});v16Current=Math.min(v16Current,Math.max(0,scale.length-1));renderScale();v16SaveDraft(); // V16 piloto: não regravar necessidades automaticamente até migração transacional
+ const date=selectedDate(),unit=document.getElementById('unit').value,uid=centralUnitId(unit);
+ if(!date||!uid){alert('Selecione a data e a unidade antes de gerar.');return}
+ if(scale.length){alert('Já existe uma programação nesta data/unidade. Para proteger o rascunho, a geração não substituiu nenhuma linha. Edite as posições existentes ou faça backup antes de iniciar outra programação.');return}
+ try{
+  // Última escala efetivamente aprovada da MESMA unidade, anterior à data de destino.
+  const {data:hist,error:he}=await sb.from('escalas').select('id,data,aprovada_em').eq('unidade_id',uid).eq('status','aprovada').lt('data',date).order('data',{ascending:false}).order('aprovada_em',{ascending:false}).limit(1);
+  if(he)throw he;
+  const previous=hist?.[0];
+  if(!previous){alert('Não há escala aprovada anterior para '+unit+'. Nenhuma programação foi alterada. Utilize Adicionar manualmente para começar.');return}
+  const {data:items,error:ie}=await sb.from('alocacoes_escala').select('id,motorista_id,veiculo_id,operacao,horario,cliente_id,origem_id,observacao,tipo_carga,status').eq('escala_id',previous.id).eq('status','aprovada').order('id');
+  if(ie)throw ie;
+  if(!items?.length){alert('A última escala aprovada não contém alocações consultáveis. Nenhuma programação foi alterada.');return}
+  const generated=items.map((a,i)=>{
+   const driver=allCentralDrivers.find(x=>x.id===a.motorista_id),vehicle=allCentralVehicles.find(x=>x.id===a.veiculo_id);
+   const name=driver?.nome||'PENDENTE DE MOTORISTA',plate=vehicle?.placa||'';
+   const problems=[];
+   if(!driver||!driver.ativo)problems.push('Motorista não cadastrado/ativo');
+   if(driver&&isDriverBlocked(driver.nome))problems.push('Motorista indisponível');
+   if(plate&&(!vehicle?.ativo||isVehicleBlocked(plate)))problems.push('Veículo indisponível');
+   return {_v16id:'H'+previous.id+'_'+a.id,name,plate,operation:a.operacao||'Carregamento',cargo:a.tipo_carga||'CAVACO',time:a.horario?String(a.horario).slice(0,5):'',client:centralClients.find(x=>x.id===a.cliente_id)?.nome||'',origin:centralOrigins.find(x=>x.id===a.origem_id)?.nome||'',obs:a.observacao||'',flag:problems.length?problems.join('; '):'Base: última escala aprovada',cls:problems.length?'red':'green',prev:'Escala '+previous.data,needId:null};
+  });
+  scale.push(...generated);
+  v16Current=0;v16Overview=false;renderScale();v16SaveDraft();
+  alert('Escala sugerida a partir da última aprovação de '+unit+' ('+previous.data.split('-').reverse().join('/')+'). '+generated.length+' posições carregadas. Revise horários, operações, folgas e oficina antes de aprovar. O histórico original não foi alterado.');
+ }catch(e){alert('Não foi possível consultar a última escala aprovada: '+(e?.message||e)+'. O rascunho foi preservado.')}
 }
 async function persistDraftNeeds(){
  let d=selectedDate(),unit=document.getElementById('unit').value,uid=centralUnitId(unit);if(!d||!uid)return;
