@@ -330,7 +330,32 @@ async function generate(){
  if(!requireManager())return;
  const date=selectedDate(),unit=document.getElementById('unit').value,uid=centralUnitId(unit);
  if(!date||!uid){alert('Selecione a data e a unidade antes de gerar.');return}
- if(scale.length){alert('Já existe uma programação nesta data/unidade. Para proteger o rascunho, a geração não substituiu nenhuma linha. Edite as posições existentes ou faça backup antes de iniciar outra programação.');return}
+ if(scale.length){
+  // Incremento seguro: mantém TODAS as posições existentes, inclusive alterações manuais.
+  // Só gera necessidades ainda não vinculadas; cada necessidade tem ID estável.
+  const pending=[];
+  for(const req of needs){
+   req._v16id=req._v16id||('N'+Date.now()+'_'+Math.random().toString(36).slice(2));
+   const count=scale.filter(x=>x._v16id===req._v16id).length;
+   const qty=Math.max(1,Number(req.qty)||1);
+   for(let k=count;k<qty;k++)pending.push({req,k});
+  }
+  if(!pending.length){alert('Nenhuma necessidade nova para acrescentar. As '+scale.length+' posições existentes foram preservadas. Para alterar uma posição, utilize Editar ou Adicionar manualmente.');return}
+  if(!confirm('Adicionar '+pending.length+' nova(s) posição(ões) à programação atual de '+scale.length+' posições? Nenhuma posição existente será substituída.'))return;
+  const p=pool(unit);
+  for(const {req,k} of pending){
+   const slotTime=addMinutes(req.time,k*(Number(req.interval)||0));
+   let candidates=p.filter(x=>!n(x.r[2]).includes('manuten')&&!isDriverBlocked(x.r[0])&&!resourceConflictAt('driver',x.r[0],slotTime));
+   if(!['folga','serviços base','manutenção','serviço para o antonio'].includes(n(req.operation)))candidates=candidates.filter(x=>!!x.r[1]&&!isVehicleBlocked(x.r[1])&&!resourceConflictAt('vehicle',x.r[1],slotTime));
+   candidates.sort((a,b)=>resourceUseCount('driver',a.r[0])-resourceUseCount('driver',b.r[0])||((a.home?0:15)+a.sc.v)-((b.home?0:15)+b.sc.v)||a.r[0].localeCompare(b.r[0]));
+   const cand=candidates[0];
+   const plate=cand?(v16AvailablePreferredPlate(cand.r[0],slotTime)||cand.r[1]||''):'';
+   scale.push({_v16id:req._v16id,name:cand?.r[0]||'PENDENTE DE MOTORISTA',plate,operation:req.operation,cargo:req.cargo||'CAVACO',time:slotTime,client:req.client,origin:req.origin,obs:req.obs,flag:cand?.sc.label||'Requer definição manual',cls:cand?.sc.cls||'red',prev:cand?.r[2]||'sem candidato elegível'});
+  }
+  v16Current=Math.max(0,scale.length-pending.length);v16Overview=false;renderScale();v16SaveDraft();
+  alert(pending.length+' nova(s) posição(ões) adicionada(s). '+(scale.length-pending.length)+' posição(ões) anteriores preservadas. Revise e aprove somente após conferir.');
+  return;
+ }
  try{
   // Última escala efetivamente aprovada da MESMA unidade, anterior à data de destino.
   const {data:hist,error:he}=await sb.from('escalas').select('id,data,aprovada_em').eq('unidade_id',uid).eq('status','aprovada').lt('data',date).order('data',{ascending:false}).order('aprovada_em',{ascending:false}).limit(1);
